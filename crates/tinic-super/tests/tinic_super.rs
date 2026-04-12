@@ -1,10 +1,10 @@
 #[cfg(test)]
 mod test {
+    use std::{path::PathBuf, sync::Arc};
     use tinic_generics::{
         retro_paths::RetroPaths,
         test_workdir::{create_test_work_dir_path, get_test_rom_path},
     };
-    use std::{path::PathBuf, sync::Arc};
     use tinic_super::{
         GameIdentifier,
         art::helper::ThumbnailEventType,
@@ -18,8 +18,8 @@ mod test {
     struct TinicSuperListener;
 
     impl TinicSuperEventListener for TinicSuperListener {
-        fn on_thumbnail_evnt(&self, event: ThumbnailEventType) {
-            println!("on_thumbnail_evnt: {event:?}");
+        fn on_thumbnail_event(&self, event: ThumbnailEventType) {
+            println!("on_thumbnail_event: {event:?}");
         }
 
         fn on_info_event(&self, event: InfoEventType) {
@@ -65,7 +65,7 @@ mod test {
         // get_infos
         {
             let infos = tinic_super.info_helper.get_infos().await;
-            assert_eq!(infos.len(), 296);
+            assert_eq!(infos.len(), 300);
             info = infos
                 .into_iter()
                 .find(|info| info.file_name == "snes9x_libretro");

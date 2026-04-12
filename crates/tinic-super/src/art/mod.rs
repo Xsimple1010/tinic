@@ -2,11 +2,11 @@ use crate::art::helper::ThumbnailEventType;
 use crate::art::thumbnail::{ThumbnailType, Thumbnails};
 use crate::event::TinicSuperEventListener;
 use crate::tools::download::download_file;
-use tinic_generics::constants::THUMBNAIL_BASE_URL;
-use tinic_generics::error_handle::ErrorHandle;
 use std::fmt::Display;
 use std::path::PathBuf;
 use std::sync::Arc;
+use tinic_generics::constants::THUMBNAIL_BASE_URL;
+use tinic_generics::error_handle::ErrorHandle;
 
 pub mod helper;
 pub mod thumbnail;
@@ -30,7 +30,7 @@ pub async fn download_thumbnail(
     let file_name = format!("{name}.png");
 
     let path = download_file(url, &file_name, dest, false, |event| {
-        event_listener.on_thumbnail_evnt(ThumbnailEventType::Downloading(event));
+        event_listener.on_thumbnail_event(ThumbnailEventType::Downloading(event));
     })
     .await
     .map_err(|e| ErrorHandle::new(&e.to_string()))?;
