@@ -4,6 +4,8 @@ use std::{
     sync::{MutexGuard, PoisonError, RwLockReadGuard, RwLockWriteGuard},
 };
 
+pub type TinicResult<T> = Result<T, ErrorHandle>;
+
 #[derive(Debug)]
 pub struct ErrorHandle {
     pub message: String,
