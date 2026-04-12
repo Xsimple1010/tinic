@@ -2,8 +2,8 @@ use std::rc::Rc;
 
 use super::{
     gl::gl::{
+        COLOR_ATTACHMENT0, FRAMEBUFFER, Gl, RENDERBUFFER, TEXTURE_2D,
         types::{GLenum, GLuint},
-        Gl, COLOR_ATTACHMENT0, FRAMEBUFFER, RENDERBUFFER, TEXTURE_2D,
     },
     texture::Texture2D,
 };
@@ -27,6 +27,9 @@ impl FrameBuffer {
 
         unsafe {
             gl.GenFramebuffers(1, &mut id);
+
+            let status = gl.CheckFramebufferStatus(FRAMEBUFFER);
+            println!("FBO status: {}", status);
         }
 
         Self { id, gl }
