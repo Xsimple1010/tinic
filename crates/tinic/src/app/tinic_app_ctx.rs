@@ -1,14 +1,15 @@
 use crate::app::listener::{GameState, WindowState};
 use crate::{SaveStateInfo, TinicGameInfo, WindowListener};
-use tinic_generics::retro_paths::RetroPaths;
-use tinic_generics::{constants::SAVE_IMAGE_EXTENSION_FILE, error_handle::ErrorHandle};
 use libretro_sys::binding_libretro::retro_hw_context_type;
 use retro_audio::RetroAudio;
 use retro_controllers::{RetroController, RetroGamePad};
 use retro_core::{RetroCore, RetroCoreIns, RetroEnvCallbacks, graphic_api::GraphicApi};
 use retro_video::RetroVideo;
 use std::path::PathBuf;
+use std::sync::atomic::Ordering;
 use std::{path::Path, sync::Arc};
+use tinic_generics::retro_paths::RetroPaths;
+use tinic_generics::{constants::SAVE_IMAGE_EXTENSION_FILE, error_handle::ErrorHandle};
 use winit::dpi::PhysicalSize;
 use winit::event_loop::ActiveEventLoop;
 use winit::keyboard::PhysicalKey;
@@ -47,14 +48,14 @@ impl TinicGameCtx {
             GraphicApi::with(retro_hw_context_type::RETRO_HW_CONTEXT_OPENGL_CORE),
         )?;
 
-        let gamepads = controller.get_list()?;
+        let game_pads = controller.get_list()?;
 
-        if gamepads.len().eq(&0) {
+        if game_pads.len().eq(&0) {
             let keyboard = controller.active_keyboard();
             retro_core.connect_controller(keyboard.retro_port, keyboard.retro_type)?;
         } else {
-            for gamepad in gamepads {
-                retro_core.connect_controller(gamepad.retro_port, gamepad.retro_type)?;
+            for game_pad in game_pads {
+                retro_core.connect_controller(game_pad.retro_port, game_pad.retro_type)?;
             }
         }
 
@@ -100,21 +101,28 @@ impl TinicGameCtx {
     }
 
     pub fn create_window(&mut self, event_loop: &ActiveEventLoop) -> Result<(), ErrorHandle> {
+        self.retro_video
+            .create_window(&self.retro_core.av_info, event_loop)
+            .map_err(|e| {
+                self.window_listener.game_state_change(GameState::Closed);
+                e
+            })
+    }
+
+    pub fn init_core(&mut self) -> Result<(), ErrorHandle> {
         let err_handle = |e: ErrorHandle| {
             self.window_listener.game_state_change(GameState::Closed);
             e
         };
 
-        self.retro_video
-            .create_window(&self.retro_core.av_info, event_loop)
-            .map_err(err_handle)?;
+        if self.retro_core.game_loaded.load(Ordering::Relaxed) {
+            return Ok(());
+        }
 
         self.retro_core
             .load_game(&self.rom_path)
             .map_err(err_handle)?;
 
-        // se o contexto de desenho não for criado pelo core após o load_game,
-        // é necessário criá-lo manualmente!
         if !self.retro_video.draw_context_as_initialized() {
             self.retro_video.create_draw_context().map_err(err_handle)?;
         }
@@ -123,10 +131,7 @@ impl TinicGameCtx {
             .init(&self.retro_core.av_info)
             .map_err(err_handle)?;
 
-        // essa thread é responsável por verificar o estado atual dos inputs dos controles,
-        // de agora em diante o core fará requisições manuais para verificar os inputs,
         self.controller.stop_thread_events();
-
         self.window_listener.game_state_change(GameState::Running);
         self.window_listener
             .window_state_change(WindowState::Opened);
@@ -165,6 +170,11 @@ impl TinicGameCtx {
             return Ok(());
         }
 
+        if !self.retro_core.game_loaded.load(Ordering::SeqCst) {
+            return Ok(());
+        }
+
+        self.retro_video.prepare_for_core()?;
         self.retro_video
             .sync
             .prepare_sync(&self.retro_core.av_info)?;
