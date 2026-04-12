@@ -3,10 +3,6 @@ use crate::retro_env_callback::RetroVideoCb;
 use crate::retro_window::{RetroWindowContext, RetroWindowMode};
 use crate::sync::RetroSync;
 use crate::{print_scree::PrintScree, retro_gl::window::RetroGlWindow};
-use tinic_generics::{
-    error_handle::ErrorHandle,
-    types::{ArcTMutex, TMutex},
-};
 use libretro_sys::binding_libretro::retro_hw_context_type::{
     RETRO_HW_CONTEXT_NONE, RETRO_HW_CONTEXT_OPENGL, RETRO_HW_CONTEXT_OPENGL_CORE,
 };
@@ -14,6 +10,10 @@ use retro_core::av_info::AvInfo;
 use std::{
     path::{Path, PathBuf},
     sync::Arc,
+};
+use tinic_generics::{
+    error_handle::ErrorHandle,
+    types::{ArcTMutex, TMutex},
 };
 use winit::event_loop::ActiveEventLoop;
 
@@ -39,7 +39,7 @@ impl RetroVideo {
         av_info: &Arc<AvInfo>,
         event_loop: &ActiveEventLoop,
     ) -> Result<(), ErrorHandle> {
-        match &av_info.video.graphic_api.context_type {
+        match *av_info.video.graphic_api.context_type.read()? {
             RETRO_HW_CONTEXT_OPENGL_CORE | RETRO_HW_CONTEXT_OPENGL | RETRO_HW_CONTEXT_NONE => {
                 self.window_ctx
                     .try_load()?
@@ -64,8 +64,7 @@ impl RetroVideo {
             None => return Err(ErrorHandle::new("windows context is not initialized")),
         };
 
-        window_ctx.context_reset();
-        Ok(())
+        window_ctx.context_reset()
     }
 
     pub fn draw_context_as_initialized(&self) -> bool {

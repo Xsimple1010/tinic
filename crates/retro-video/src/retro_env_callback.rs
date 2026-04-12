@@ -51,7 +51,7 @@ impl RetroVideoEnvCallbacks for RetroVideoCb {
 
     fn context_reset(&self) -> Result<(), ErrorHandle> {
         if let Some(win) = &mut *self.window_ctx.try_load()? {
-            win.context_reset();
+            win.context_reset()?;
         }
         Ok(())
     }
@@ -66,7 +66,7 @@ impl RetroVideoEnvCallbacks for RetroVideoCb {
 
     fn context_destroy(&self) -> Result<(), ErrorHandle> {
         if let Some(win) = &mut *self.window_ctx.try_load()? {
-            win.context_destroy();
+            win.context_destroy()?;
         }
         Ok(())
     }

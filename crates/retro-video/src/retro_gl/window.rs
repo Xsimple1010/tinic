@@ -15,8 +15,9 @@ use raw_window_handle::HasWindowHandle;
 use retro_core::av_info::AvInfo;
 use std::num::NonZeroU32;
 use std::ptr::null;
-use std::sync::atomic::Ordering;
 use std::sync::Arc;
+use std::sync::atomic::Ordering;
+use tinic_generics::error_handle::TinicResult;
 use winit::dpi::PhysicalSize;
 use winit::window::Fullscreen;
 
@@ -34,14 +35,18 @@ use crate::retro_window::{RetroWindowContext, RetroWindowMode};
 use libretro_sys::binding_libretro::retro_hw_context_type;
 use retro_core::graphic_api::GraphicApi;
 
-fn create_gl_context(window: &Window, gl_config: &Config, api: &GraphicApi) -> NotCurrentContext {
+fn create_gl_context(
+    window: &Window,
+    gl_config: &Config,
+    api: &GraphicApi,
+) -> TinicResult<NotCurrentContext> {
     let raw_window_handle = window.window_handle().ok().map(|wh| wh.as_raw());
     let display = gl_config.display();
 
     let debug = api.debug_context.load(Ordering::SeqCst);
 
     // === 1. Decide API and version (RetroArch logic) ===
-    let (primary, fallback) = match api.context_type {
+    let (primary, fallback) = match *api.context_type.read()? {
         retro_hw_context_type::RETRO_HW_CONTEXT_OPENGL => {
             // Desktop GL: ignore major/minor
             (
@@ -88,13 +93,14 @@ fn create_gl_context(window: &Window, gl_config: &Config, api: &GraphicApi) -> N
 
     // === 3. Create context (primary → fallback) ===
     unsafe {
-        display
+        let ctx = display
             .create_context(gl_config, &primary_attrs)
             .unwrap_or_else(|_| {
                 display
                     .create_context(gl_config, &fallback_attrs)
                     .expect("Failed to create any GL context")
-            })
+            });
+        Ok(ctx)
     }
 }
 
@@ -150,25 +156,27 @@ impl RetroWindowContext for RetroGlWindow {
     }
 
     fn toggle_window_model(&mut self) {
-        match self.window_mode { 
+        match self.window_mode {
             RetroWindowMode::FullScreen => self.set_window_mode(RetroWindowMode::Windowed),
             RetroWindowMode::Windowed => self.set_window_mode(RetroWindowMode::FullScreen),
         }
     }
 
-    fn context_destroy(&mut self) {
+    fn context_destroy(&mut self) -> TinicResult<()> {
         self.renderer = None;
         self.gl_context = None;
         self.gl_surface = None;
+
+        Ok(())
     }
 
-    fn context_reset(&mut self) {
+    fn context_reset(&mut self) -> TinicResult<()> {
         // Create gl context.
         let gl_context = create_gl_context(
             &self.window,
             &self.gl_config,
             &self.av_info.video.graphic_api,
-        )
+        )?
         .treat_as_possibly_current();
 
         let attrs = self
@@ -198,6 +206,8 @@ impl RetroWindowContext for RetroGlWindow {
         self.renderer = Some(render);
         self.gl_context = Some(gl_context);
         self.gl_surface = Some(gl_surface);
+
+        Ok(())
     }
 
     fn resize(&mut self, width: u32, height: u32) {

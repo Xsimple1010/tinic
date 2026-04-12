@@ -1,19 +1,19 @@
 pub mod listener;
+mod tinic_app_ctx;
 mod user_events;
 mod window_events;
-mod tinic_app_ctx;
 
-use crate::app::listener::WindowListener;
-use crate::app_dispatcher::{GameInstanceActions, GameInstanceDispatchers};
 use crate::TinicGameInfo;
-use tinic_generics::error_handle::ErrorHandle;
+use crate::app::listener::WindowListener;
+use crate::app::tinic_app_ctx::TinicGameCtx;
+use crate::app_dispatcher::{GameInstanceActions, GameInstanceDispatchers};
 use retro_controllers::RetroController;
 use std::sync::Arc;
+use tinic_generics::error_handle::ErrorHandle;
 use winit::{
     application::ApplicationHandler, event::WindowEvent, event_loop::ActiveEventLoop,
     window::WindowId,
 };
-use crate::app::tinic_app_ctx::TinicGameCtx;
 
 pub struct GameInstance {
     ctx: TinicGameCtx,
@@ -66,6 +66,11 @@ impl ApplicationHandler<GameInstanceActions> for GameInstance {
     }
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+        if let Err(e) = self.ctx.init_core() {
+            println!("{:?}", e);
+            self.destroy_window_and_render_context(event_loop, &self.ctx);
+        }
+
         if let Err(e) = self.ctx.redraw_request() {
             println!("{:?}", e);
             self.destroy_window_and_render_context(event_loop, &self.ctx);

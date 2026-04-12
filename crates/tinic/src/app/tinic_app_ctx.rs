@@ -174,7 +174,6 @@ impl TinicGameCtx {
             return Ok(());
         }
 
-        self.retro_video.prepare_for_core()?;
         self.retro_video
             .sync
             .prepare_sync(&self.retro_core.av_info)?;

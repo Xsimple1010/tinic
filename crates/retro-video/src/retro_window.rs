@@ -1,3 +1,5 @@
+use tinic_generics::error_handle::TinicResult;
+
 use crate::raw_texture::RawTextureData;
 
 pub enum RetroWindowMode {
@@ -16,9 +18,9 @@ pub trait RetroWindowContext {
 
     fn toggle_window_model(&mut self);
 
-    fn context_destroy(&mut self);
+    fn context_destroy(&mut self) -> TinicResult<()>;
 
-    fn context_reset(&mut self);
+    fn context_reset(&mut self) -> TinicResult<()>;
 
     fn resize(&mut self, width: u32, height: u32);
 

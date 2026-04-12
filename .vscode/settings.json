@@ -1,6 +1,9 @@
 {
     "cSpell.words": [
-        "tinic"
+        "libretro",
+        "OPENGL",
+        "tinic",
+        "winit"
     ],
     "cSpell.language": "en,pt,pt-BR"
 }
