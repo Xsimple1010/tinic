@@ -7,6 +7,7 @@ pub struct RawTextureData {
     pub width: c_uint,
     pub height: c_uint,
     pub pitch: usize,
+    pub is_hw: bool,
 }
 
 impl RawTextureData {
@@ -16,6 +17,7 @@ impl RawTextureData {
             pitch: 0,
             height: 0,
             width: 0,
+            is_hw: false,
         }
     }
 }

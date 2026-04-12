@@ -1,10 +1,10 @@
 use crate::raw_texture::RawTextureData;
 use crate::retro_window::RetroWindowContext;
-use tinic_generics::error_handle::ErrorHandle;
-use tinic_generics::types::ArcTMutex;
 use retro_core::RetroVideoEnvCallbacks;
 use std::ffi::c_void;
 use std::ptr::null;
+use tinic_generics::error_handle::ErrorHandle;
+use tinic_generics::types::ArcTMutex;
 
 pub struct RetroVideoCb {
     texture: ArcTMutex<RawTextureData>,
@@ -39,6 +39,7 @@ impl RetroVideoEnvCallbacks for RetroVideoCb {
             texture.width = width;
             texture.height = height;
             texture.pitch = pitch;
+            texture.is_hw = data == !0usize as *const c_void;
         }
 
         if let Some(win) = &mut *self.window_ctx.try_load()? {
