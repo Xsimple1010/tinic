@@ -1,16 +1,16 @@
 use super::environment::CORE_CONTEXT;
 #[cfg(feature = "hw")]
 use crate::libretro_sys::binding_libretro::{
-    retro_hw_context_type, retro_hw_render_callback,
-    retro_proc_address_t, RETRO_ENVIRONMENT_GET_PREFERRED_HW_RENDER, RETRO_ENVIRONMENT_SET_HW_RENDER,
+    RETRO_ENVIRONMENT_GET_PREFERRED_HW_RENDER, RETRO_ENVIRONMENT_SET_HW_RENDER,
+    retro_hw_context_type, retro_hw_render_callback, retro_proc_address_t,
 };
 use crate::{
+    RetroCoreIns,
     libretro_sys::binding_libretro::{
-        retro_game_geometry, retro_pixel_format,
-        RETRO_ENVIRONMENT_GET_AUDIO_VIDEO_ENABLE, RETRO_ENVIRONMENT_SET_GEOMETRY, RETRO_ENVIRONMENT_SET_PIXEL_FORMAT,
+        RETRO_ENVIRONMENT_GET_AUDIO_VIDEO_ENABLE, RETRO_ENVIRONMENT_SET_GEOMETRY,
+        RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, retro_game_geometry, retro_pixel_format,
     },
     tools::validation::InputValidator,
-    RetroCoreIns,
 };
 #[cfg(feature = "hw")]
 use std::{ffi::c_char, mem};
@@ -64,6 +64,7 @@ pub unsafe extern "C" fn video_refresh_callback(
     height: std::os::raw::c_uint,
     pitch: usize,
 ) {
+    println!("video refresh");
     unsafe {
         if let Some(core_ctx) = &*addr_of!(CORE_CONTEXT)
             && let Err(e) = core_ctx
@@ -99,8 +100,8 @@ unsafe extern "C" fn get_current_frame_buffer() -> usize {
 #[cfg(feature = "hw")]
 unsafe extern "C" fn get_proc_address(sym: *const c_char) -> retro_proc_address_t {
     use crate::tools::ffi_tools::get_str_from_ptr;
-
     println!("get_proc_address");
+
     unsafe {
         match &*addr_of!(CORE_CONTEXT) {
             Some(core_ctx) => {
@@ -126,40 +127,6 @@ unsafe extern "C" fn get_proc_address(sym: *const c_char) -> retro_proc_address_
                 }
             }
             None => None,
-        }
-    }
-}
-
-#[cfg(feature = "hw")]
-unsafe extern "C" fn context_reset() {
-    println!("context_reset");
-
-    unsafe {
-        match &*addr_of!(CORE_CONTEXT) {
-            Some(core_ctx) => {
-                if let Err(e) = core_ctx.callbacks.video.context_reset() {
-                    println!("context_reset: {:?}", e);
-                    let _ = core_ctx.de_init();
-                }
-            }
-            None => println!("context_reset: core_ctx is None"),
-        }
-    }
-}
-
-#[cfg(feature = "hw")]
-unsafe extern "C" fn context_destroy() {
-    println!("context_destroy");
-
-    unsafe {
-        match &*addr_of!(CORE_CONTEXT) {
-            Some(core_ctx) => {
-                if let Err(e) = core_ctx.callbacks.video.context_destroy() {
-                    println!("context_destroy: {:?}", e);
-                    let _ = core_ctx.de_init();
-                }
-            }
-            None => println!("context_destroy: core_ctx is None"),
         }
     }
 }
@@ -223,40 +190,33 @@ pub unsafe fn env_cb_av(
 
             unsafe {
                 *(data as *mut retro_hw_context_type) =
-                    core_ctx.av_info.video.graphic_api.context_type;
+                    *core_ctx.av_info.video.graphic_api.context_type.read()?;
             }
 
-            Ok(false)
+            Ok(true)
         }
         #[cfg(feature = "hw")]
-        RETRO_ENVIRONMENT_SET_HW_RENDER => {
-            #[cfg(feature = "core_ev_logs")]
-            println!("RETRO_ENVIRONMENT_SET_HW_RENDER");
+        RETRO_ENVIRONMENT_SET_HW_RENDER => unsafe {
+            let hw_cb = &mut *(data as *mut retro_hw_render_callback);
 
-            if InputValidator::validate_non_null_ptr(
-                data,
-                "ptr data in RETRO_ENVIRONMENT_SET_HW_RENDER",
-            )
-            .is_err()
-            {
-                return Ok(false);
-            };
+            println!(
+                "SET_HW_RENDER: context_type={:?} major={} minor={} depth={} stencil={}",
+                hw_cb.context_type,
+                hw_cb.version_major,
+                hw_cb.version_minor,
+                hw_cb.depth,
+                hw_cb.stencil
+            );
 
-            unsafe {
-                let hw_cb = &mut *(data as *mut retro_hw_render_callback);
+            hw_cb.get_current_framebuffer = Some(get_current_frame_buffer);
+            hw_cb.get_proc_address = Some(get_proc_address);
 
-                hw_cb.context_reset = Some(context_reset);
-                hw_cb.context_destroy = Some(context_destroy);
-                hw_cb.get_current_framebuffer = Some(get_current_frame_buffer);
-                hw_cb.get_proc_address = Some(get_proc_address);
-
-                Ok(core_ctx
-                    .av_info
-                    .video
-                    .graphic_api
-                    .try_update_from_raw(hw_cb))
-            }
-        }
+            Ok(core_ctx
+                .av_info
+                .video
+                .graphic_api
+                .try_update_from_raw(hw_cb)?)
+        },
         _ => Ok(false),
     }
 }
