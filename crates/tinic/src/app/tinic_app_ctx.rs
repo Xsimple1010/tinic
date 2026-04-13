@@ -119,13 +119,23 @@ impl TinicGameCtx {
             return Ok(());
         }
 
+        self.retro_video.create_draw_context().map_err(err_handle)?;
+
         self.retro_core
             .load_game(&self.rom_path)
             .map_err(err_handle)?;
 
-        if !self.retro_video.draw_context_as_initialized() {
-            self.retro_video.create_draw_context().map_err(err_handle)?;
-        }
+        self.retro_video
+            .init_frame_buffer(&self.retro_core.av_info)
+            .map_err(err_handle)?;
+
+        // notifica o core se houver hw render callback
+        self.retro_core
+            .av_info
+            .video
+            .graphic_api
+            .try_reset_ctx()
+            .map_err(err_handle)?;
 
         self.retro_audio
             .init(&self.retro_core.av_info)
@@ -177,6 +187,7 @@ impl TinicGameCtx {
         self.retro_video
             .sync
             .prepare_sync(&self.retro_core.av_info)?;
+        self.retro_video.prepare_to_core()?;
         self.retro_core.run()?;
         self.retro_video.sync.sync_now()?;
         Ok(())

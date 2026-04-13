@@ -1,6 +1,8 @@
 use super::render::Render;
 use crate::raw_texture::RawTextureData;
+use crate::retro_window::{RetroWindowContext, RetroWindowMode};
 use crate::winit::{event_loop::ActiveEventLoop, window::Window};
+use glutin::context::GlProfile;
 use glutin::{
     config::{Config, ConfigTemplateBuilder},
     context::{
@@ -11,13 +13,15 @@ use glutin::{
     surface::{GlSurface, Surface, WindowSurface},
 };
 use glutin_winit::{DisplayBuilder, GlWindow};
+use libretro_sys::binding_libretro::retro_hw_context_type;
 use raw_window_handle::HasWindowHandle;
 use retro_core::av_info::AvInfo;
+use retro_core::graphic_api::GraphicApi;
 use std::num::NonZeroU32;
 use std::ptr::null;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
-use tinic_generics::error_handle::TinicResult;
+use tinic_generics::error_handle::{ErrorHandle, TinicResult};
 use winit::dpi::PhysicalSize;
 use winit::window::Fullscreen;
 
@@ -31,9 +35,10 @@ pub struct RetroGlWindow {
     av_info: Arc<AvInfo>,
 }
 
-use crate::retro_window::{RetroWindowContext, RetroWindowMode};
-use libretro_sys::binding_libretro::retro_hw_context_type;
-use retro_core::graphic_api::GraphicApi;
+fn is_wayland() -> bool {
+    std::env::var("WAYLAND_DISPLAY").is_ok()
+        && !std::env::var("WAYLAND_DISPLAY").unwrap().is_empty()
+}
 
 fn create_gl_context(
     window: &Window,
@@ -42,18 +47,15 @@ fn create_gl_context(
 ) -> TinicResult<NotCurrentContext> {
     let raw_window_handle = window.window_handle().ok().map(|wh| wh.as_raw());
     let display = gl_config.display();
-
     let debug = api.debug_context.load(Ordering::SeqCst);
 
-    // === 1. Decide API and version (RetroArch logic) ===
     let (primary, fallback) = match *api.context_type.read()? {
-        retro_hw_context_type::RETRO_HW_CONTEXT_OPENGL => {
-            // Desktop GL: ignore major/minor
-            (
-                ContextApi::OpenGl(Some(Version::new(3, 3))),
-                ContextApi::OpenGl(Some(Version::new(2, 1))),
-            )
-        }
+        retro_hw_context_type::RETRO_HW_CONTEXT_OPENGL
+        | retro_hw_context_type::RETRO_HW_CONTEXT_OPENGL_CORE
+        | retro_hw_context_type::RETRO_HW_CONTEXT_NONE => (
+            ContextApi::OpenGl(Some(Version::new(3, 3))),
+            ContextApi::OpenGl(Some(Version::new(2, 1))),
+        ),
         retro_hw_context_type::RETRO_HW_CONTEXT_OPENGLES2 => (
             ContextApi::Gles(Some(Version::new(2, 0))),
             ContextApi::Gles(Some(Version::new(2, 0))),
@@ -61,37 +63,39 @@ fn create_gl_context(
         retro_hw_context_type::RETRO_HW_CONTEXT_OPENGLES3 => {
             let major = api.major.load(Ordering::SeqCst);
             let minor = api.minor.load(Ordering::SeqCst);
-
             let version = if major >= 3 {
                 Version::new(major, minor)
             } else {
                 Version::new(3, 0)
             };
-
             (
                 ContextApi::Gles(Some(version)),
                 ContextApi::Gles(Some(Version::new(3, 0))),
             )
         }
-        retro_hw_context_type::RETRO_HW_CONTEXT_OPENGL_CORE => (
-            ContextApi::OpenGl(Some(Version::new(3, 3))),
-            ContextApi::OpenGl(Some(Version::new(2, 1))),
-        ),
-        _ => panic!("Unsupported HW context type"),
+        _ => return Err(ErrorHandle::new("Unsupported HW context type")),
     };
 
-    // === 2. Context attributes ===
+    // No Wayland/EGL, o GLEW de alguns cores (ex: PPSSPP) falha com Core Profile.
+    // Usa Compatibility Profile como fallback para garantir compatibilidade.
+    let profile = if is_wayland() {
+        Some(GlProfile::Compatibility)
+    } else {
+        Some(GlProfile::Core)
+    };
+
     let primary_attrs = ContextAttributesBuilder::new()
         .with_context_api(primary)
+        .with_profile(profile.unwrap())
         .with_debug(debug)
         .build(raw_window_handle);
 
     let fallback_attrs = ContextAttributesBuilder::new()
         .with_context_api(fallback)
+        .with_profile(GlProfile::Compatibility) // fallback sempre Compatibility
         .with_debug(debug)
         .build(raw_window_handle);
 
-    // === 3. Create context (primary → fallback) ===
     unsafe {
         let ctx = display
             .create_context(gl_config, &primary_attrs)
@@ -135,7 +139,6 @@ impl RetroWindowContext for RetroGlWindow {
     }
 
     fn get_proc_address(&self, proc_name: &str) -> *const () {
-        println!("get_proc_address({:?})", proc_name);
         let cstr = std::ffi::CString::new(proc_name).unwrap();
 
         match &self.gl_context {
@@ -170,7 +173,7 @@ impl RetroWindowContext for RetroGlWindow {
         Ok(())
     }
 
-    fn context_reset(&mut self) -> TinicResult<()> {
+    fn init_context(&mut self) -> TinicResult<()> {
         // Create gl context.
         let gl_context = create_gl_context(
             &self.window,
@@ -201,7 +204,7 @@ impl RetroWindowContext for RetroGlWindow {
 
         gl_context.make_current(&gl_surface).unwrap();
 
-        let render = Render::new(&self.av_info, self.gl_config.display()).unwrap();
+        let render = Render::new(self.gl_config.display()).unwrap();
 
         self.renderer = Some(render);
         self.gl_context = Some(gl_context);
@@ -233,6 +236,24 @@ impl RetroWindowContext for RetroGlWindow {
 
     fn draw_context_as_initialized(&self) -> bool {
         self.gl_context.is_some()
+    }
+
+    fn prepare_for_core(&self) {
+        let renderer = match &self.renderer {
+            Some(renderer) => renderer,
+            None => return,
+        };
+
+        renderer.prepare_for_core()
+    }
+
+    fn init_frame_buffer(&mut self, av_info: &Arc<AvInfo>) -> TinicResult<()> {
+        let renderer = match &mut self.renderer {
+            Some(renderer) => renderer,
+            None => return Ok(()),
+        };
+
+        renderer.init_framebuffer(av_info)
     }
 }
 

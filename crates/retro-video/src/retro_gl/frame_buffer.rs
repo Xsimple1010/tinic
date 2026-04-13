@@ -27,9 +27,6 @@ impl FrameBuffer {
 
         unsafe {
             gl.GenFramebuffers(1, &mut id);
-
-            let status = gl.CheckFramebufferStatus(FRAMEBUFFER);
-            println!("FBO status: {}", status);
         }
 
         Self { id, gl }

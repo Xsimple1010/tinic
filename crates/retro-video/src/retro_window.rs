@@ -1,3 +1,6 @@
+use std::sync::Arc;
+
+use retro_core::av_info::AvInfo;
 use tinic_generics::error_handle::TinicResult;
 
 use crate::raw_texture::RawTextureData;
@@ -20,9 +23,13 @@ pub trait RetroWindowContext {
 
     fn context_destroy(&mut self) -> TinicResult<()>;
 
-    fn context_reset(&mut self) -> TinicResult<()>;
+    fn init_context(&mut self) -> TinicResult<()>;
 
     fn resize(&mut self, width: u32, height: u32);
 
     fn draw_context_as_initialized(&self) -> bool;
+
+    fn init_frame_buffer(&mut self, av_info: &Arc<AvInfo>) -> TinicResult<()>;
+
+    fn prepare_for_core(&self);
 }

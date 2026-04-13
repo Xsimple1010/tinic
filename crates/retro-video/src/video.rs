@@ -11,6 +11,7 @@ use std::{
     path::{Path, PathBuf},
     sync::Arc,
 };
+use tinic_generics::error_handle::TinicResult;
 use tinic_generics::{
     error_handle::ErrorHandle,
     types::{ArcTMutex, TMutex},
@@ -45,7 +46,6 @@ impl RetroVideo {
                     .try_load()?
                     .replace(Box::new(RetroGlWindow::new(event_loop, av_info)));
             }
-            // RETRO_HW_CONTEXT_VULKAN => {}
             _ => {
                 return Err(ErrorHandle {
                     message: "suporte para a api selecionada não está disponível".to_owned(),
@@ -64,7 +64,7 @@ impl RetroVideo {
             None => return Err(ErrorHandle::new("windows context is not initialized")),
         };
 
-        window_ctx.context_reset()
+        window_ctx.init_context()
     }
 
     pub fn draw_context_as_initialized(&self) -> bool {
@@ -124,5 +124,28 @@ impl RetroVideo {
 
     pub fn get_core_cb(&self) -> RetroVideoCb {
         RetroVideoCb::new(self.texture.clone(), self.window_ctx.clone())
+    }
+
+    pub fn prepare_to_core(&self) -> TinicResult<()> {
+        let window_ctx = &mut *self.window_ctx.try_load()?;
+
+        let window_ctx = match window_ctx {
+            Some(ctx) => ctx,
+            None => return Err(ErrorHandle::new("windows context is not initialized")),
+        };
+
+        window_ctx.prepare_for_core();
+        Ok(())
+    }
+
+    pub fn init_frame_buffer(&self, av_info: &Arc<AvInfo>) -> TinicResult<()> {
+        let window_ctx = &mut *self.window_ctx.try_load()?;
+
+        let window_ctx = match window_ctx {
+            Some(ctx) => ctx,
+            None => return Err(ErrorHandle::new("windows context is not initialized")),
+        };
+
+        window_ctx.init_frame_buffer(av_info)
     }
 }
