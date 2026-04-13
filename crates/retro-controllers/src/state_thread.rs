@@ -1,30 +1,34 @@
 use crate::devices_manager::DevicesManager;
-use tinic_generics::types::TMutex;
-use tinic_generics::{constants::THREAD_SLEEP_TIME, types::ArcTMutex};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::{
     thread::{self, sleep},
     time::Duration,
 };
+use tinic_generics::constants::THREAD_SLEEP_TIME;
 
 #[derive(Debug)]
 pub struct EventThread {
-    event_thread_can_run: ArcTMutex<bool>,
+    event_thread_can_run: Arc<AtomicBool>,
 }
 
 impl EventThread {
     pub fn new() -> Self {
         EventThread {
-            event_thread_can_run: TMutex::new(false),
+            event_thread_can_run: Arc::new(AtomicBool::new(false)),
         }
     }
 
     pub fn stop(&self) {
-        self.event_thread_can_run.store(false);
+        self.event_thread_can_run.store(true, Ordering::SeqCst);
     }
 
     pub fn resume(&self, devices: Arc<DevicesManager>) {
-        self.event_thread_can_run.store(true);
+        if self.event_thread_can_run.load(Ordering::SeqCst) {
+            return;
+        }
+
+        self.event_thread_can_run.store(true, Ordering::SeqCst);
         self.create_update_devices_state_thread(devices);
     }
 
@@ -40,11 +44,13 @@ impl EventThread {
         let event_thread_is_enabled = self.event_thread_can_run.clone();
 
         thread::spawn(move || {
-            while *event_thread_is_enabled.load_or(false) {
+            while event_thread_is_enabled.load(Ordering::SeqCst) {
                 //WITHOUT THIS, WI HAVE A HIGH CPU UTILIZATION!
                 sleep(Duration::from_millis(THREAD_SLEEP_TIME));
 
-                devices.update_state().unwrap();
+                if let Err(e) = devices.update_state() {
+                    println!("erro na thread de controle: {e:?}");
+                }
             }
         });
     }

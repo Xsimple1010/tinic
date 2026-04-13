@@ -55,6 +55,11 @@ impl ApplicationHandler<GameInstanceActions> for GameInstance {
             println!("{:?}", e);
             event_loop.exit();
         }
+
+        if let Err(e) = self.ctx.init_core() {
+            println!("{:?}", e);
+            self.destroy_window_and_render_context(event_loop, &self.ctx);
+        }
     }
 
     fn user_event(&mut self, event_loop: &ActiveEventLoop, event: GameInstanceActions) {
@@ -66,11 +71,6 @@ impl ApplicationHandler<GameInstanceActions> for GameInstance {
     }
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
-        if let Err(e) = self.ctx.init_core() {
-            println!("{:?}", e);
-            self.destroy_window_and_render_context(event_loop, &self.ctx);
-        }
-
         if let Err(e) = self.ctx.redraw_request() {
             println!("{:?}", e);
             self.destroy_window_and_render_context(event_loop, &self.ctx);

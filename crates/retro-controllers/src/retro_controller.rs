@@ -2,10 +2,10 @@ use crate::devices_manager::{DeviceListener, DeviceRubble, DevicesManager};
 use crate::gamepad::retro_gamepad::RetroGamePad;
 use crate::keyboard::Keyboard;
 use crate::state_thread::EventThread;
-use tinic_generics::error_handle::ErrorHandle;
 use libretro_sys::binding_libretro::retro_rumble_effect;
 use retro_core::RetroControllerEnvCallbacks;
 use std::sync::Arc;
+use tinic_generics::error_handle::ErrorHandle;
 use winit::keyboard::PhysicalKey;
 
 pub struct RetroController {

@@ -64,7 +64,6 @@ pub unsafe extern "C" fn video_refresh_callback(
     height: std::os::raw::c_uint,
     pitch: usize,
 ) {
-    println!("video refresh");
     unsafe {
         if let Some(core_ctx) = &*addr_of!(CORE_CONTEXT)
             && let Err(e) = core_ctx
@@ -80,7 +79,6 @@ pub unsafe extern "C" fn video_refresh_callback(
 
 #[cfg(feature = "hw")]
 unsafe extern "C" fn get_current_frame_buffer() -> usize {
-    println!("get_current_frame_buffer");
     unsafe {
         match &*addr_of!(CORE_CONTEXT) {
             Some(core_ctx) => core_ctx
@@ -100,7 +98,6 @@ unsafe extern "C" fn get_current_frame_buffer() -> usize {
 #[cfg(feature = "hw")]
 unsafe extern "C" fn get_proc_address(sym: *const c_char) -> retro_proc_address_t {
     use crate::tools::ffi_tools::get_str_from_ptr;
-    println!("get_proc_address");
 
     unsafe {
         match &*addr_of!(CORE_CONTEXT) {
