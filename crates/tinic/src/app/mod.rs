@@ -1,8 +1,3 @@
-pub mod listener;
-mod tinic_app_ctx;
-mod user_events;
-mod window_events;
-
 use crate::TinicGameInfo;
 use crate::app::listener::WindowListener;
 use crate::app::tinic_app_ctx::TinicGameCtx;
@@ -14,6 +9,11 @@ use winit::{
     application::ApplicationHandler, event::WindowEvent, event_loop::ActiveEventLoop,
     window::WindowId,
 };
+
+pub mod listener;
+mod tinic_app_ctx;
+mod user_events;
+mod window_events;
 
 pub struct GameInstance {
     ctx: TinicGameCtx,
