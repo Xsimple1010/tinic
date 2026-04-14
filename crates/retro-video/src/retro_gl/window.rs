@@ -131,7 +131,7 @@ impl RetroWindowContext for RetroGlWindow {
 
         renderer.draw_new_frame(
             texture,
-            &self.av_info.video.geometry,
+            &self.av_info,
             size.width as i32,
             size.height as i32,
         );

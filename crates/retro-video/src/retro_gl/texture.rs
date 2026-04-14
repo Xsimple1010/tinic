@@ -1,13 +1,13 @@
 use super::{gl::gl, pixel::Pixel};
-use tinic_generics::error_handle::ErrorHandle;
+use crate::raw_texture::RawTextureData;
 use gl::types::GLuint;
 use retro_core::av_info::AvInfo;
 use std::{
     ptr::null,
     rc::Rc,
-    sync::{atomic::Ordering, Arc},
+    sync::{Arc, atomic::Ordering},
 };
-use crate::raw_texture::RawTextureData;
+use tinic_generics::error_handle::ErrorHandle;
 
 pub type TexturePosition = [f32; 2];
 
@@ -35,8 +35,9 @@ impl Texture2D {
         let param = texture.pitch as i32 / self.pixel.bpm;
 
         unsafe {
-            self.gl.BindTexture(gl::TEXTURE0, self.id);
+            self.gl.BindTexture(gl::TEXTURE_2D, self.id);
             self.gl.PixelStorei(gl::UNPACK_ROW_LENGTH, param);
+
             self.gl.TexSubImage2D(
                 gl::TEXTURE_2D,
                 0,
@@ -48,12 +49,20 @@ impl Texture2D {
                 self.pixel.format,
                 texture.data.get().read(),
             );
-            self.gl.BindTexture(gl::TEXTURE0, 0);
+
+            self.gl.BindTexture(gl::TEXTURE_2D, 0);
         }
     }
 
     pub fn get_id(&self) -> GLuint {
         self.id
+    }
+
+    pub fn bind_existing(&self) {
+        unsafe {
+            self.gl.ActiveTexture(gl::TEXTURE0);
+            self.gl.BindTexture(gl::TEXTURE_2D, self.id);
+        }
     }
 
     pub fn new(av_info: &Arc<AvInfo>, gl: Rc<gl::Gl>) -> Result<Texture2D, ErrorHandle> {

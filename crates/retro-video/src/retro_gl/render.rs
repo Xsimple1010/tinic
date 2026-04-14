@@ -14,7 +14,7 @@ use super::{
 };
 use crate::raw_texture::RawTextureData;
 use glutin::prelude::GlDisplay;
-use retro_core::av_info::{AvInfo, Geometry};
+use retro_core::av_info::AvInfo;
 use std::{ffi::CString, mem::size_of, sync::atomic::Ordering};
 use std::{rc::Rc, sync::Arc};
 use tinic_generics::error_handle::{ErrorHandle, TinicResult};
@@ -29,8 +29,6 @@ pub struct Render {
     _vbo: Option<GlBuffer>,
     _fbo: Option<FrameBuffer>,
     _rbo: Option<RenderBuffer>,
-    fbo_width: i32,
-    fbo_height: i32,
     gl: Rc<gl::Gl>,
 }
 
@@ -88,8 +86,6 @@ impl Render {
             _vbo: None,
             _fbo: None,
             _rbo: None,
-            fbo_width: 0,
-            fbo_height: 0,
             gl,
         })
     }
@@ -154,8 +150,6 @@ impl Render {
         self._fbo = Some(fbo);
         self._rbo = rbo;
         self._texture = Some(texture);
-        self.fbo_width = fbo_width;
-        self.fbo_height = fbo_height;
 
         Ok(())
     }
@@ -167,46 +161,14 @@ impl Render {
             None => return,
         };
 
-        if self.fbo_width == 0 || self.fbo_height == 0 {
-            return;
-        }
-
         unsafe {
             self.gl.BindFramebuffer(gl::FRAMEBUFFER, fbo.get_id());
-            self.gl.Viewport(0, 0, self.fbo_width, self.fbo_height);
-        }
-    }
-
-    fn blit_fbo_to_screen(&self, win_width: i32, win_height: i32) {
-        let fbo = match &self._fbo {
-            Some(fbo) => fbo,
-            None => return,
-        };
-
-        unsafe {
-            self.gl.BindFramebuffer(gl::READ_FRAMEBUFFER, fbo.get_id());
-            self.gl.BindFramebuffer(gl::DRAW_FRAMEBUFFER, 0);
-
-            self.gl.BlitFramebuffer(
-                0,
-                0,
-                self.fbo_width,
-                self.fbo_height,
-                0,
-                0,
-                win_width,
-                win_height,
-                gl::COLOR_BUFFER_BIT,
-                gl::NEAREST,
-            );
-
-            self.gl.BindFramebuffer(gl::FRAMEBUFFER, 0);
         }
     }
 
     fn refresh_vertex(
         &self,
-        geo: &Geometry,
+        av_info: &Arc<AvInfo>,
         origin_w: f32,
         origin_h: f32,
         window_w: i32,
@@ -221,7 +183,13 @@ impl Render {
             None => return,
         };
 
-        let vertex = new_vertex(geo, window_w as f32, window_h as f32, origin_w, origin_h);
+        let vertex = new_vertex(
+            &av_info,
+            window_w as f32,
+            window_h as f32,
+            origin_w,
+            origin_h,
+        );
 
         vao.bind();
         vbo.bind();
@@ -237,7 +205,7 @@ impl Render {
     pub fn draw_new_frame(
         &self,
         texture: &RawTextureData,
-        geo: &Geometry,
+        av_info: &Arc<AvInfo>,
         win_width: i32,
         win_height: i32,
     ) {
@@ -252,23 +220,29 @@ impl Render {
             self.gl.ClearColor(0.0, 0.0, 0.0, 1.0);
             self.gl.Clear(gl::COLOR_BUFFER_BIT);
 
-            if texture.is_hw {
-                self.blit_fbo_to_screen(win_width, win_height);
-                return;
-            }
-
             let texture2d = match &self._texture {
                 Some(tex) => tex,
                 None => return,
             };
 
             self.refresh_vertex(
-                geo,
+                &av_info,
                 texture.width as f32,
                 texture.height as f32,
                 win_width,
                 win_height,
             );
+
+            if texture.is_hw {
+                self._program.use_program();
+                texture2d.bind_existing();
+
+                vao.bind();
+                self.gl.DrawArrays(gl::TRIANGLE_STRIP, 0, 4);
+                vao.un_bind();
+                self._program.un_use_program();
+                return;
+            }
 
             texture2d.push(texture);
             self._program.use_program();

@@ -1,19 +1,21 @@
-use retro_core::av_info::Geometry;
+use retro_core::av_info::{AvInfo, Geometry};
 
 use super::texture::TexturePosition;
-use std::sync::atomic::Ordering;
+use std::sync::{Arc, atomic::Ordering};
 
 pub type Pos = [f32; 2];
 #[repr(C, packed)]
+#[derive(Debug)]
 pub struct GlVertex(Pos, TexturePosition);
 
 pub fn new_vertex(
-    geo: &Geometry,
+    av_info: &Arc<AvInfo>,
     window_w: f32,
     window_h: f32,
     origin_w: f32,
     origin_h: f32,
 ) -> [GlVertex; 4] {
+    let geo = &av_info.video.geometry;
     let (v_bottom, v_right) = resize_vertex_to_aspect(
         *geo.aspect_ratio.read().unwrap(),
         window_w,
@@ -21,17 +23,26 @@ pub fn new_vertex(
         origin_w,
         origin_h,
     );
+
     let (t_bottom, t_right) = resize_texture(geo, origin_w, origin_h);
 
-    let vertex: [GlVertex; 4] = [
-        // vertex_position - texture_coordinate
-        GlVertex([-v_bottom, -v_right], [0.0, t_bottom]), //left_bottom
-        GlVertex([-v_bottom, v_right], [0.0, 0.0]),       //left_top
-        GlVertex([v_bottom, -v_right], [t_right, t_bottom]), //right_bottom
-        GlVertex([v_bottom, v_right], [t_right, 0.0]),    //right_top
-    ];
+    let (t_top, t_bottom) = if av_info
+        .video
+        .graphic_api
+        .bottom_left_origin
+        .load(Ordering::SeqCst)
+    {
+        (t_bottom, 0.0)
+    } else {
+        (0.0, t_bottom)
+    };
 
-    vertex
+    [
+        GlVertex([-v_bottom, -v_right], [0.0, t_bottom]), // left_bottom
+        GlVertex([-v_bottom, v_right], [0.0, t_top]),     // left_top
+        GlVertex([v_bottom, -v_right], [t_right, t_bottom]), // right_bottom
+        GlVertex([v_bottom, v_right], [t_right, t_top]),  // right_top
+    ]
 }
 
 fn resize_texture(geo: &Geometry, origin_w: f32, origin_h: f32) -> (f32, f32) {
