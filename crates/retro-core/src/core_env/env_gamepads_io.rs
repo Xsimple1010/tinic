@@ -1,87 +1,16 @@
 use crate::{
-    core_env::environment::CORE_CONTEXT,
+    RetroCoreIns,
+    core_env::env_callbacks::rumble_callback,
     libretro_sys::binding_libretro::{
-        retro_controller_info, retro_rumble_effect,
-        retro_rumble_interface, RETRO_ENVIRONMENT_GET_INPUT_BITMASKS,
-        RETRO_ENVIRONMENT_GET_RUMBLE_INTERFACE, RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS,
+        RETRO_ENVIRONMENT_GET_INPUT_BITMASKS, RETRO_ENVIRONMENT_GET_RUMBLE_INTERFACE,
+        RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS,
+        retro_controller_info, retro_rumble_interface,
     },
     tinic_generics::constants::MAX_CORE_CONTROLLER_INFO_TYPES,
     tools::validation::InputValidator,
-    RetroCoreIns,
 };
-use std::{ffi::c_uint, os::raw::c_void, ptr::addr_of};
+use std::{ffi::c_uint, os::raw::c_void};
 use tinic_generics::error_handle::ErrorHandle;
-
-unsafe extern "C" fn rumble_callback(
-    port: c_uint,
-    effect: retro_rumble_effect,
-    strength: u16,
-) -> bool {
-    let retro_core = unsafe {
-        match &*addr_of!(CORE_CONTEXT) {
-            Some(core_ctx) => core_ctx,
-            None => return false,
-        }
-    };
-
-    let res = retro_core
-        .callbacks
-        .controller
-        .rumble_callback(port, effect, strength);
-
-    match res {
-        Ok(v) => v,
-        Err(e) => {
-            println!("{:?}", e);
-            let _ = retro_core.de_init();
-            false
-        }
-    }
-}
-
-pub unsafe extern "C" fn input_poll_callback() {
-    let retro_core = unsafe {
-        match &*addr_of!(CORE_CONTEXT) {
-            Some(core_ctx) => core_ctx,
-            None => return,
-        }
-    };
-
-    if let Err(e) = retro_core.callbacks.controller.input_poll_callback() {
-        println!("{:?}", e);
-        let _ = retro_core.de_init();
-    }
-}
-
-pub unsafe extern "C" fn input_state_callback(
-    port: c_uint,
-    device: c_uint,
-    index: c_uint,
-    id: c_uint,
-) -> i16 {
-    let retro_core = unsafe {
-        match &*addr_of!(CORE_CONTEXT) {
-            Some(core_ctx) => core_ctx,
-            None => return 0,
-        }
-    };
-
-    let res = retro_core.callbacks.controller.input_state_callback(
-        port as i16,
-        device as i16,
-        index as i16,
-        id as i16,
-    );
-
-    match res {
-        Ok(v) => v,
-        Err(e) => {
-            println!("{:?}", e);
-            let _ = retro_core.de_init();
-            0
-        }
-    }
-}
 
 pub unsafe fn env_cb_gamepad_io(
     core_ctx: &RetroCoreIns,

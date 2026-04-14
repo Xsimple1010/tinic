@@ -1,8 +1,7 @@
-use super::environment::CORE_CONTEXT;
 #[cfg(feature = "hw")]
 use crate::libretro_sys::binding_libretro::{
     RETRO_ENVIRONMENT_GET_PREFERRED_HW_RENDER, RETRO_ENVIRONMENT_SET_HW_RENDER,
-    retro_hw_context_type, retro_hw_render_callback, retro_proc_address_t,
+    retro_hw_context_type, retro_hw_render_callback,
 };
 use crate::{
     RetroCoreIns,
@@ -12,121 +11,8 @@ use crate::{
     },
     tools::validation::InputValidator,
 };
-#[cfg(feature = "hw")]
-use std::{ffi::c_char, mem};
-use std::{
-    ffi::{c_uint, c_void},
-    ptr::addr_of,
-};
+use std::ffi::{c_uint, c_void};
 use tinic_generics::error_handle::ErrorHandle;
-
-pub unsafe extern "C" fn audio_sample_callback(left: i16, right: i16) {
-    unsafe {
-        if let Some(core_ctx) = &*addr_of!(CORE_CONTEXT)
-            && let Err(e) = core_ctx.callbacks.audio.audio_sample_callback(
-                left,
-                right,
-                core_ctx.av_info.clone(),
-            )
-        {
-            println!("{:?}", e);
-            let _ = core_ctx.de_init();
-        }
-    }
-}
-
-pub unsafe extern "C" fn audio_sample_batch_callback(data: *const i16, frames: usize) -> usize {
-    unsafe {
-        if let Some(core_ctx) = &*addr_of!(CORE_CONTEXT) {
-            let res = core_ctx.callbacks.audio.audio_sample_batch_callback(
-                data,
-                frames,
-                core_ctx.av_info.clone(),
-            );
-
-            match res {
-                Ok(frames) => frames,
-                Err(e) => {
-                    println!("{:?}", e);
-                    let _ = core_ctx.de_init();
-                    0
-                }
-            }
-        } else {
-            0
-        }
-    }
-}
-
-pub unsafe extern "C" fn video_refresh_callback(
-    data: *const c_void,
-    width: std::os::raw::c_uint,
-    height: std::os::raw::c_uint,
-    pitch: usize,
-) {
-    unsafe {
-        if let Some(core_ctx) = &*addr_of!(CORE_CONTEXT)
-            && let Err(e) = core_ctx
-                .callbacks
-                .video
-                .video_refresh_callback(data, width, height, pitch)
-        {
-            println!("{:?}", e);
-            let _ = core_ctx.de_init();
-        }
-    }
-}
-
-#[cfg(feature = "hw")]
-unsafe extern "C" fn get_current_frame_buffer() -> usize {
-    unsafe {
-        match &*addr_of!(CORE_CONTEXT) {
-            Some(core_ctx) => core_ctx
-                .av_info
-                .video
-                .graphic_api
-                .fbo
-                .read()
-                .unwrap()
-                .unwrap(),
-            None => 0,
-        }
-    }
-}
-
-//TODO: ainda preciso testar  se isso esta funcionando
-#[cfg(feature = "hw")]
-unsafe extern "C" fn get_proc_address(sym: *const c_char) -> retro_proc_address_t {
-    use crate::tools::ffi_tools::get_str_from_ptr;
-
-    unsafe {
-        match &*addr_of!(CORE_CONTEXT) {
-            Some(core_ctx) => {
-                let fc_name = get_str_from_ptr(sym);
-
-                let res = core_ctx.callbacks.video.get_proc_address(&fc_name);
-
-                match res {
-                    Ok(proc_address) => {
-                        if proc_address.is_null() {
-                            return None;
-                        }
-
-                        let function: unsafe extern "C" fn() = mem::transmute(proc_address);
-
-                        Some(function)
-                    }
-                    Err(e) => {
-                        println!("{:?}", e);
-                        let _ = core_ctx.de_init();
-                        None
-                    }
-                }
-            }
-            None => None,
-        }
-    }
-}
 
 pub unsafe fn env_cb_av(
     core_ctx: &RetroCoreIns,
@@ -194,6 +80,8 @@ pub unsafe fn env_cb_av(
         }
         #[cfg(feature = "hw")]
         RETRO_ENVIRONMENT_SET_HW_RENDER => unsafe {
+            use crate::core_env::env_callbacks::{get_current_frame_buffer, get_proc_address};
+
             let hw_cb = &mut *(data as *mut retro_hw_render_callback);
 
             println!(

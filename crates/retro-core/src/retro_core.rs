@@ -1,17 +1,21 @@
 use crate::av_info::AvInfo;
+use crate::core_env::env_callbacks::{
+    audio_sample_batch_callback, audio_sample_callback, input_poll_callback, input_state_callback,
+    video_refresh_callback,
+};
 use crate::core_env::{self, RetroEnvCallbacks};
 use crate::graphic_api::GraphicApi;
 use crate::tools::game_tools::{RomTools, SaveInfo};
 use crate::tools::validation::InputValidator;
 use crate::{managers::option_manager::OptionManager, system::System};
-use tinic_generics::error_handle::ErrorHandle;
-use tinic_generics::retro_paths::RetroPaths;
 use libretro_sys::binding_libretro::LibretroRaw;
 use std::ffi::{c_uint, c_void};
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, RwLock};
+use tinic_generics::error_handle::ErrorHandle;
+use tinic_generics::retro_paths::RetroPaths;
 
 pub type RetroCoreIns = Rc<RetroCore>;
 
@@ -72,20 +76,17 @@ impl RetroCore {
 
             core.init()?;
 
-            core.raw
-                .retro_set_audio_sample(Some(core_env::audio_sample_callback));
+            core.raw.retro_set_audio_sample(Some(audio_sample_callback));
 
             core.raw
-                .retro_set_audio_sample_batch(Some(core_env::audio_sample_batch_callback));
+                .retro_set_audio_sample_batch(Some(audio_sample_batch_callback));
 
             core.raw
-                .retro_set_video_refresh(Some(core_env::video_refresh_callback));
+                .retro_set_video_refresh(Some(video_refresh_callback));
 
-            core.raw
-                .retro_set_input_poll(Some(core_env::input_poll_callback));
+            core.raw.retro_set_input_poll(Some(input_poll_callback));
 
-            core.raw
-                .retro_set_input_state(Some(core_env::input_state_callback));
+            core.raw.retro_set_input_state(Some(input_state_callback));
         }
 
         Ok(core)
