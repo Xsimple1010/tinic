@@ -20,7 +20,7 @@ impl EventThread {
     }
 
     pub fn stop(&self) {
-        self.event_thread_can_run.store(true, Ordering::SeqCst);
+        self.event_thread_can_run.store(false, Ordering::SeqCst);
     }
 
     pub fn resume(&self, devices: Arc<DevicesManager>) {
