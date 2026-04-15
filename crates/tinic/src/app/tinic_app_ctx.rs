@@ -129,14 +129,6 @@ impl TinicGameCtx {
             .init_frame_buffer(&self.retro_core.av_info)
             .map_err(err_handle)?;
 
-        // notifica o core se houver hw render callback
-        self.retro_core
-            .av_info
-            .video
-            .graphic_api
-            .try_reset_ctx()
-            .map_err(err_handle)?;
-
         self.retro_audio
             .init(&self.retro_core.av_info)
             .map_err(err_handle)?;
@@ -159,10 +151,13 @@ impl TinicGameCtx {
     }
 
     pub fn destroy_retro_ctx(&self) -> Result<(), ErrorHandle> {
+        if let Err(r) = self.retro_core.av_info.video.graphic_api.try_destroy_ctx() {
+            println!("{r:?}");
+        }
         self.retro_core.de_init()?;
+        self.retro_video.destroy_window();
         self.retro_audio.stop();
         self.controller.resume_thread_events();
-        self.retro_video.destroy_window();
 
         self.window_listener.game_state_change(GameState::Closed);
         self.window_listener

@@ -166,9 +166,37 @@ impl RetroWindowContext for RetroGlWindow {
     }
 
     fn context_destroy(&mut self) -> TinicResult<()> {
-        self.renderer = None;
-        self.gl_context = None;
-        self.gl_surface = None;
+        let ctx = match self.gl_context.take() {
+            Some(ctx) => ctx,
+            None => return Ok(()),
+        };
+
+        let surface = match self.gl_surface.take() {
+            Some(gl_surface) => gl_surface,
+            None => return Ok(()),
+        };
+
+        // 🔥 1. garantir contexto ativo
+        if let Err(e) = ctx.make_current(&surface) {
+            println!("{e:?}");
+        }
+
+        // 🔥 2. destruir render (com contexto ativo)
+        if let Some(mut renderer) = self.renderer.take() {
+            renderer.deinit(&self.av_info);
+            drop(renderer); // 🔥 FORÇA DROP AQUI
+        }
+
+        // 🔥 3. desativar contexto
+        if let Err(e) = ctx.make_not_current() {
+            println!("{e:?}");
+        }
+
+        // 🔥 4. destruir surface ANTES do contexto
+        drop(surface);
+
+        // 🔥 5. destruir contexto por último
+        // drop(ctx);
 
         Ok(())
     }
@@ -253,7 +281,9 @@ impl RetroWindowContext for RetroGlWindow {
             None => return Ok(()),
         };
 
-        renderer.init_framebuffer(av_info)
+        renderer.init_framebuffer(av_info)?;
+
+        av_info.video.graphic_api.try_reset_ctx()
     }
 }
 

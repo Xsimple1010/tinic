@@ -137,13 +137,7 @@ impl Render {
 
         fbo.un_bind();
 
-        // Salva o ID do FBO para o callback get_current_framebuffer
-        av_info
-            .video
-            .graphic_api
-            .fbo
-            .write()?
-            .replace(fbo.get_id() as usize);
+        g_api.fbo.write()?.replace(fbo.get_id() as usize);
 
         self._vao = Some(vao);
         self._vbo = Some(vbo);
@@ -252,6 +246,53 @@ impl Render {
             self.gl.DrawArrays(gl::TRIANGLE_STRIP, 0, 4);
             vao.un_bind();
             self._program.un_use_program();
+        }
+    }
+
+    pub fn deinit(&mut self, av_info: &Arc<AvInfo>) {
+        unsafe {
+            // 🔥 1. limpar estado GL (evita lixo)
+            self.gl.BindFramebuffer(gl::FRAMEBUFFER, 0);
+            self.gl.UseProgram(0);
+            self.gl.BindBuffer(gl::ARRAY_BUFFER, 0);
+            self.gl.BindVertexArray(0);
+        }
+
+        // 🔥 2. resetar FBO do libretro (CRÍTICO)
+        if let Ok(mut fbo) = av_info.video.graphic_api.fbo.write() {
+            fbo.take(); // ou replace(0)
+        }
+
+        // 🔥 3. destruir na ordem correta (dependências)
+        // textura depende do FBO → destruir depois de desbind
+
+        if let Some(texture) = self._texture.take() {
+            texture.un_bind(); // se tiver
+            // drop acontece aqui
+        }
+
+        if let Some(rbo) = self._rbo.take() {
+            rbo.un_bind();
+        }
+
+        if let Some(fbo) = self._fbo.take() {
+            fbo.un_bind();
+        }
+
+        if let Some(vbo) = self._vbo.take() {
+            vbo.un_bind();
+        }
+
+        if let Some(vao) = self._vao.take() {
+            vao.un_bind();
+        }
+
+        // 🔥 shader program por último (usa recursos acima)
+        self._program.un_use_program();
+
+        // 🔥 4. forçar flush (ajuda drivers chatos)
+        unsafe {
+            self.gl.Flush();
         }
     }
 }

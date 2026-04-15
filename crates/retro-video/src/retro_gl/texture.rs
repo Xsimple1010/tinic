@@ -65,6 +65,13 @@ impl Texture2D {
         }
     }
 
+    pub fn un_bind(&self) {
+        unsafe {
+            self.gl.ActiveTexture(gl::TEXTURE0);
+            self.gl.BindTexture(gl::TEXTURE_2D, 0);
+        }
+    }
+
     pub fn new(av_info: &Arc<AvInfo>, gl: Rc<gl::Gl>) -> Result<Texture2D, ErrorHandle> {
         let mut id = 0;
         let geo = &av_info.video.geometry;
