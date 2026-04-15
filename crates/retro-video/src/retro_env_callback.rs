@@ -1,7 +1,6 @@
 use crate::raw_texture::RawTextureData;
 use crate::retro_window::RetroWindowContext;
 use retro_core::RetroVideoEnvCallbacks;
-use std::ffi::c_void;
 use std::ptr::null;
 use tinic_generics::error_handle::ErrorHandle;
 use tinic_generics::types::ArcTMutex;
@@ -26,21 +25,19 @@ impl RetroVideoCb {
 impl RetroVideoEnvCallbacks for RetroVideoCb {
     fn video_refresh_callback(
         &self,
-        data: *const c_void,
+        data: Vec<u8>,
         width: u32,
         height: u32,
         pitch: usize,
+        is_hw: bool,
     ) -> Result<(), ErrorHandle> {
         let mut texture = self.texture.try_load()?;
-        {
-            let tex_data = texture.data.get_mut();
 
-            *tex_data = data;
-            texture.width = width;
-            texture.height = height;
-            texture.pitch = pitch;
-            texture.is_hw = data == !0usize as *const c_void;
-        }
+        texture.data = data;
+        texture.width = width;
+        texture.height = height;
+        texture.pitch = pitch;
+        texture.is_hw = is_hw;
 
         if let Some(win) = &mut *self.window_ctx.try_load()? {
             win.draw_new_frame(&texture);

@@ -46,10 +46,11 @@ pub struct RetroEnvCallbacks {
 pub trait RetroVideoEnvCallbacks {
     fn video_refresh_callback(
         &self,
-        data: *const c_void,
+        data: Vec<u8>,
         width: u32,
         height: u32,
         pitch: usize,
+        is_hw: bool,
     ) -> Result<(), ErrorHandle>;
     #[doc = " Called when a context has been created or when it has been reset.\n An OpenGL context is only valid after context_reset() has been called.\n\n When context_reset is called, OpenGL resources in the libretro\n implementation are guaranteed to be invalid.\n\n It is possible that context_reset is called multiple times during an\n application lifecycle.\n If context_reset is called without any notification (context_destroy),\n the OpenGL context was lost and resources should just be recreated\n without any attempt to \"free\" old resources."]
     fn context_reset(&self) -> Result<(), ErrorHandle>;

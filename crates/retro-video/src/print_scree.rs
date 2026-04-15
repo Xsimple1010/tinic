@@ -1,5 +1,4 @@
 use crate::raw_texture::RawTextureData;
-use tinic_generics::error_handle::ErrorHandle;
 use image::{ImageBuffer, RgbImage};
 use libretro_sys::binding_libretro::retro_pixel_format;
 use retro_core::av_info::AvInfo;
@@ -7,6 +6,7 @@ use std::{
     path::{Path, PathBuf},
     sync::Arc,
 };
+use tinic_generics::error_handle::ErrorHandle;
 
 pub struct PrintScree;
 
@@ -16,6 +16,11 @@ impl PrintScree {
         av_info: &Arc<AvInfo>,
         out_path: &mut PathBuf,
     ) -> Result<(), ErrorHandle> {
+        // 🔴 importante: não salvar frame HW
+        if raw_texture.is_hw {
+            return Err(ErrorHandle::new("Frame HW não pode ser salvo como imagem"));
+        }
+
         match &*av_info
             .video
             .pixel_format
@@ -38,122 +43,105 @@ impl PrintScree {
         raw_texture: &RawTextureData,
         out_path: &mut PathBuf,
     ) -> Result<(), ErrorHandle> {
-        let data_ptr = unsafe { raw_texture.data.get().read() as *const u8 };
-
         let width = raw_texture.width as usize;
         let height = raw_texture.height as usize;
-        // bit por pixel
-        let bpp = 4;
-        // padding + width * bpp
         let pitch = raw_texture.pitch;
 
-        let mut img_buffer = Vec::with_capacity(height * width * 3);
+        let data = &raw_texture.data;
 
-        for row_index in 0..height {
-            let row_ptr = unsafe { data_ptr.add(row_index * pitch) };
-            let rows: &[u8] = unsafe { std::slice::from_raw_parts(row_ptr, width * bpp) };
+        let mut img_buffer = Vec::with_capacity(width * height * 3);
 
-            for pixel in rows.chunks_exact(4) {
+        for y in 0..height {
+            let row_start = y * pitch;
+            let row = &data[row_start..row_start + width * 4];
+
+            for pixel in row.chunks_exact(4) {
                 let b = pixel[0];
                 let g = pixel[1];
                 let r = pixel[2];
-                // pixel[3] = X (ignorar)
 
-                img_buffer.push(r);
-                img_buffer.push(g);
-                img_buffer.push(b);
+                img_buffer.extend_from_slice(&[r, g, b]);
             }
         }
 
-        let img: RgbImage =
-            ImageBuffer::from_raw(raw_texture.width, raw_texture.height, img_buffer)
-                .ok_or_else(|| ErrorHandle::new("Falha ao criar ImageBuffer"))?;
-
-        img.save(Path::new(out_path))
-            .map_err(|e| e.to_string())
-        ?;
-
-        Ok(())
+        Self::save_image(raw_texture, img_buffer, out_path)
     }
 
     fn _from_0rgb1555(
         raw_texture: &RawTextureData,
         out_path: &mut PathBuf,
     ) -> Result<(), ErrorHandle> {
-        let data_ptr = unsafe { raw_texture.data.get().read() as *const u8 };
-
-        let mut img_buffer =
-            Vec::with_capacity((raw_texture.width * raw_texture.height * 3) as usize);
-
         let width = raw_texture.width as usize;
         let height = raw_texture.height as usize;
         let pitch = raw_texture.pitch;
 
+        let data = &raw_texture.data;
+
+        let mut img_buffer = Vec::with_capacity(width * height * 3);
+
         for y in 0..height {
-            let row_ptr = unsafe { data_ptr.add(y * pitch) } as *const u16;
-            let row: &[u16] = unsafe { std::slice::from_raw_parts(row_ptr, width) };
+            let row_start = y * pitch;
+            let row = &data[row_start..row_start + width * 2];
 
-            for &pixel in row {
-                // 0RGB1555
-                let r5 = ((pixel >> 10) & 0x1F) as u8;
-                let g5 = ((pixel >> 5) & 0x1F) as u8;
-                let b5 = (pixel & 0x1F) as u8;
+            for pixel in row.chunks_exact(2) {
+                let value = u16::from_le_bytes([pixel[0], pixel[1]]);
 
-                // 5 bits → 8 bits
+                let r5 = ((value >> 10) & 0x1F) as u8;
+                let g5 = ((value >> 5) & 0x1F) as u8;
+                let b5 = (value & 0x1F) as u8;
+
                 let r = (r5 << 3) | (r5 >> 2);
                 let g = (g5 << 3) | (g5 >> 2);
                 let b = (b5 << 3) | (b5 >> 2);
 
-                img_buffer.push(r);
-                img_buffer.push(g);
-                img_buffer.push(b);
+                img_buffer.extend_from_slice(&[r, g, b]);
             }
         }
 
-        let img: RgbImage =
-            ImageBuffer::from_raw(raw_texture.width, raw_texture.height, img_buffer)
-                .ok_or_else(|| ErrorHandle::new("Falha ao criar ImageBuffer"))?;
-
-        img.save(Path::new(out_path))
-            .map_err(|e| ErrorHandle::new(&e.to_string()))?;
-
-        Ok(())
+        Self::save_image(raw_texture, img_buffer, out_path)
     }
 
     fn _from_rgb565(
         raw_texture: &RawTextureData,
         out_path: &mut PathBuf,
     ) -> Result<(), ErrorHandle> {
-        let data_ptr = unsafe { raw_texture.data.get().read() as *const u8 };
-
         let width = raw_texture.width as usize;
         let height = raw_texture.height as usize;
-        let pitch = raw_texture.pitch; // 🔴 ISSO É O QUE FALTAVA
+        let pitch = raw_texture.pitch;
+
+        let data = &raw_texture.data;
 
         let mut img_buffer = Vec::with_capacity(width * height * 3);
 
         for y in 0..height {
-            let row_ptr = unsafe { data_ptr.add(y * pitch) } as *const u16;
-            let row: &[u16] = unsafe { std::slice::from_raw_parts(row_ptr, width) };
+            let row_start = y * pitch;
+            let row = &data[row_start..row_start + width * 2];
 
-            for &pixel in row {
-                let r5 = ((pixel >> 11) & 0x1F) as u8;
-                let g6 = ((pixel >> 5) & 0x3F) as u8;
-                let b5 = (pixel & 0x1F) as u8;
+            for pixel in row.chunks_exact(2) {
+                let value = u16::from_le_bytes([pixel[0], pixel[1]]);
+
+                let r5 = ((value >> 11) & 0x1F) as u8;
+                let g6 = ((value >> 5) & 0x3F) as u8;
+                let b5 = (value & 0x1F) as u8;
 
                 let r = (r5 << 3) | (r5 >> 2);
                 let g = (g6 << 2) | (g6 >> 4);
                 let b = (b5 << 3) | (b5 >> 2);
 
-                img_buffer.push(r);
-                img_buffer.push(g);
-                img_buffer.push(b);
+                img_buffer.extend_from_slice(&[r, g, b]);
             }
         }
 
-        let img: RgbImage =
-            ImageBuffer::from_raw(raw_texture.width, raw_texture.height, img_buffer)
-                .ok_or_else(|| ErrorHandle::new("Falha ao criar ImageBuffer"))?;
+        Self::save_image(raw_texture, img_buffer, out_path)
+    }
+
+    fn save_image(
+        raw_texture: &RawTextureData,
+        buffer: Vec<u8>,
+        out_path: &PathBuf,
+    ) -> Result<(), ErrorHandle> {
+        let img: RgbImage = ImageBuffer::from_raw(raw_texture.width, raw_texture.height, buffer)
+            .ok_or_else(|| ErrorHandle::new("Falha ao criar ImageBuffer"))?;
 
         img.save(Path::new(out_path))
             .map_err(|e| ErrorHandle::new(&e.to_string()))?;

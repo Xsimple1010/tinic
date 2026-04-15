@@ -122,16 +122,25 @@ pub unsafe extern "C" fn audio_sample_batch_callback(data: *const i16, frames: u
 
 pub unsafe extern "C" fn video_refresh_callback(
     data: *const c_void,
-    width: std::os::raw::c_uint,
-    height: std::os::raw::c_uint,
+    width: u32,
+    height: u32,
     pitch: usize,
 ) {
     unsafe {
+        let is_hw = data == !0usize as *const c_void;
+
+        let buffer = if is_hw {
+            Vec::new()
+        } else {
+            let size = pitch * height as usize;
+            std::slice::from_raw_parts(data as *const u8, size).to_vec()
+        };
+
         if let Some(core_ctx) = &*addr_of!(CORE_CONTEXT)
             && let Err(e) = core_ctx
                 .callbacks
                 .video
-                .video_refresh_callback(data, width, height, pitch)
+                .video_refresh_callback(buffer, width, height, pitch, is_hw)
         {
             println!("{:?}", e);
             let _ = core_ctx.de_init();

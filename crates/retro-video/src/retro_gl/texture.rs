@@ -3,6 +3,7 @@ use crate::raw_texture::RawTextureData;
 use gl::types::GLuint;
 use retro_core::av_info::AvInfo;
 use std::{
+    os::raw::c_void,
     ptr::null,
     rc::Rc,
     sync::{Arc, atomic::Ordering},
@@ -47,9 +48,10 @@ impl Texture2D {
                 texture.height as i32,
                 self.pixel.typ,
                 self.pixel.format,
-                texture.data.get().read(),
+                texture.data.as_ptr() as *const c_void,
             );
 
+            self.gl.PixelStorei(gl::UNPACK_ROW_LENGTH, 0);
             self.gl.BindTexture(gl::TEXTURE_2D, 0);
         }
     }

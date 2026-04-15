@@ -1,14 +1,14 @@
-use tinic_generics::{
-    error_handle::ErrorHandle,
-    retro_paths::RetroPaths,
-    test_workdir::{create_test_work_dir_path, get_test_core_path},
-};
 use libretro_sys::binding_libretro::retro_rumble_effect;
 use retro_core::{
     RetroAudioEnvCallbacks, RetroControllerEnvCallbacks, RetroCore, RetroCoreIns,
     RetroEnvCallbacks, RetroVideoEnvCallbacks, av_info::AvInfo, graphic_api::GraphicApi,
 };
 use std::{ptr, sync::Arc};
+use tinic_generics::{
+    error_handle::ErrorHandle,
+    retro_paths::RetroPaths,
+    test_workdir::{create_test_work_dir_path, get_test_core_path},
+};
 
 pub fn get_callbacks() -> RetroEnvCallbacks {
     RetroEnvCallbacks {
@@ -23,10 +23,11 @@ struct Video;
 impl RetroVideoEnvCallbacks for Video {
     fn video_refresh_callback(
         &self,
-        _data: *const std::os::raw::c_void,
+        _data: Vec<u8>,
         _width: u32,
         _height: u32,
         _pitch: usize,
+        _is_hw: bool,
     ) -> Result<(), ErrorHandle> {
         println!("video_refresh_callback -> width:{_width} height:{_height} pitch:{_pitch}");
         Ok(())

@@ -1,9 +1,7 @@
-use std::cell::UnsafeCell;
-use std::ffi::{c_uint, c_void};
-use std::ptr::null;
+use std::ffi::c_uint;
 
 pub struct RawTextureData {
-    pub data: UnsafeCell<*const c_void>,
+    pub data: Vec<u8>,
     pub width: c_uint,
     pub height: c_uint,
     pub pitch: usize,
@@ -13,7 +11,7 @@ pub struct RawTextureData {
 impl RawTextureData {
     pub fn new() -> Self {
         Self {
-            data: UnsafeCell::new(null()),
+            data: Vec::new(),
             pitch: 0,
             height: 0,
             width: 0,
