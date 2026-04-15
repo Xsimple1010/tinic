@@ -17,7 +17,6 @@ use crate::{
         },
         binding_log_interface::configure_log_interface,
     },
-    retro_core::RetroCore,
     retro_perf::{
         core_get_perf_counter, core_perf_log, core_perf_register, core_perf_start, core_perf_stop,
         get_cpu_features, get_features_get_time_usec,
@@ -31,7 +30,6 @@ use std::sync::Arc;
 use std::{
     ffi::{c_char, c_uint},
     ptr,
-    rc::Rc,
     sync::atomic::Ordering,
 };
 use std::{os::raw::c_void, ptr::addr_of};
