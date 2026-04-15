@@ -150,7 +150,6 @@ pub unsafe extern "C" fn video_refresh_callback(
 
 #[cfg(feature = "hw")]
 pub unsafe extern "C" fn get_current_frame_buffer() -> usize {
-    println!("get_current_frame_buffer");
     unsafe {
         match &*addr_of!(CORE_CONTEXT) {
             Some(core_ctx) => core_ctx

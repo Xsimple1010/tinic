@@ -169,6 +169,7 @@ impl RetroCore {
 
             return Err(e);
         }
+        self.game_loaded.store(false, Ordering::SeqCst);
 
         unsafe {
             self.raw.retro_deinit();
