@@ -93,7 +93,7 @@ pub trait RetroControllerEnvCallbacks {
 }
 
 #[doc = "pelo amor de deus MANTENHA isso dentro desse diretório"]
-pub static mut CORE_CONTEXT: Option<Rc<RetroCore>> = None;
+pub static mut CORE_CONTEXT: Option<RetroCoreIns> = None;
 
 //noinspection RsPlaceExpression
 pub fn configure(core_ctx: RetroCoreIns) {
@@ -114,7 +114,7 @@ unsafe extern "C" fn core_log(_level: retro_log_level, _log: *const c_char) {
     println!("[{:?}]: {:?}", _level, get_str_from_ptr(_log));
 }
 
-fn handle_env_result(core_ctx: &Rc<RetroCore>, core_env_result: Result<bool, ErrorHandle>) -> bool {
+fn handle_env_result(core_ctx: &RetroCoreIns, core_env_result: Result<bool, ErrorHandle>) -> bool {
     match core_env_result {
         Ok(val) => val,
         Err(err) => {

@@ -11,13 +11,12 @@ use crate::{managers::option_manager::OptionManager, system::System};
 use libretro_sys::binding_libretro::LibretroRaw;
 use std::ffi::{c_uint, c_void};
 use std::path::PathBuf;
-use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, RwLock};
 use tinic_generics::error_handle::ErrorHandle;
 use tinic_generics::retro_paths::RetroPaths;
 
-pub type RetroCoreIns = Rc<RetroCore>;
+pub type RetroCoreIns = Arc<RetroCore>;
 
 pub struct RetroCore {
     pub rom_name: RwLock<String>,
@@ -55,7 +54,7 @@ impl RetroCore {
             system.info.library_name.clone().to_string(),
         ));
 
-        let core = Rc::new(RetroCore {
+        let core = Arc::new(RetroCore {
             raw: Arc::new(raw),
             initialized: AtomicBool::new(false),
             game_loaded: AtomicBool::new(false),
