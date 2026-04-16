@@ -4,194 +4,6 @@
     // Para obter mais informações, acesse: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-        
-        {
-            "name": "Debug unit tests in library 'retro_controllers'",
-            "type": "lldb",
-            "request": "launch",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--package=retro-controllers"
-                ]
-            }
-        },
-        {
-            "name": "Debug unit tests in library 'libretro_sys'",
-            "type": "lldb",
-            "request": "launch",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--package=libretro-sys"
-                ]
-            }
-        },
-        {
-            "name": "Debug unit tests in library 'retro_core'",
-            "type": "lldb",
-            "request": "launch",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--package=retro-core"
-                ]
-            }
-        },
-        {
-            "name": "Debug integration test 'retro_core_test'",
-            "type": "lldb",
-            "request": "launch",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--test=retro_core_test",
-                    "--package=retro-core"
-                ]
-            }
-        },
-        {
-            "name": "Debug unit tests in library 'tinic_generics'",
-            "type": "lldb",
-            "request": "launch",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--package=tinic-generics"
-                ]
-            }
-        },
-        {
-            "name": "Debug unit tests in library 'retro_video'",
-            "type": "lldb",
-            "request": "launch",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--package=retro-video"
-                ]
-            }
-        },
-        {
-            "name": "Debug unit tests in library 'tinic'",
-            "type": "lldb",
-            "request": "launch",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--package=tinic"
-                ]
-            }
-        },
-        {
-            "name": "Debug example 'tinic_pop_event'",
-            "type": "lldb",
-            "request": "launch",
-            "cargo": {
-                "args": [
-                    "run",
-                    "--example=tinic_pop_event",
-                    "--package=tinic"
-                ]
-            },
-            "args": []
-        },
-        {
-            "name": "Debug unit tests in example 'tinic_pop_event'",
-            "type": "lldb",
-            "request": "launch",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--example=tinic_pop_event",
-                    "--package=tinic"
-                ]
-            }
-        },
-        {
-            "name": "Debug example 'tinic_ron_on_demand'",
-            "type": "lldb",
-            "request": "launch",
-            "cargo": {
-                "args": [
-                    "run",
-                    "--example=tinic_ron_on_demand",
-                    "--package=tinic"
-                ]
-            },
-            "args": []
-        },
-        {
-            "name": "Debug unit tests in example 'tinic_ron_on_demand'",
-            "type": "lldb",
-            "request": "launch",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--example=tinic_ron_on_demand",
-                    "--package=tinic"
-                ]
-            }
-        },
-        {
-            "name": "Debug example 'tinic_run'",
-            "type": "lldb",
-            "request": "launch",
-            "cargo": {
-                "args": [
-                    "run",
-                    "--example=tinic_run",
-                    "--package=tinic"
-                ]
-            },
-            "args": []
-        },
-        {
-            "name": "Debug unit tests in example 'tinic_run'",
-            "type": "lldb",
-            "request": "launch",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--example=tinic_run",
-                    "--package=tinic"
-                ]
-            }
-        },
-        {
-            "name": "Debug unit tests in library 'retro_audio'",
-            "type": "lldb",
-            "request": "launch",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--package=retro-audio"
-                ]
-            }
-        },
-        {
-            "name": "Debug unit tests in library 'tinic_super'",
-            "type": "lldb",
-            "request": "launch",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--package=tinic-super"
-                ]
-            }
-        },
-        {
-            "name": "Debug integration test 'tinic_super'",
-            "type": "lldb",
-            "request": "launch",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--test=tinic_super",
-                    "--package=tinic-super"
-                ]
-            }
-        },
         {
             "name": "Debug executable 'tinic-ipc'",
             "type": "lldb",
@@ -218,26 +30,46 @@
             }
         },
         {
-            "name": "Debug unit tests in library 'tinic_ipc_protocol'",
+            "name": "Debug executable 'tinic-ipc' linux XWayland",
+            "type": "lldb",
+            "request": "launch",
+            "cargo": {
+                "args": [
+                    "run",
+                    "--bin=tinic-ipc",
+                    "--package=tinic-ipc"
+                ]
+            },
+            "env": {
+                "WAYLAND_DISPLAY": "",
+                "DISPLAY": ":0"
+            },
+            "args": []
+        },
+        {
+            "name": "Debug executable 'tinic-ipc' linux wayland",
+            "type": "lldb",
+            "request": "launch",
+            "cargo": {
+                "args": [
+                    "run",
+                    "--bin=tinic-ipc",
+                    "--package=tinic-ipc"
+                ]
+            },
+            "args": []
+        },
+        {
+            "name": "Debug unit tests in executable 'tinic-ipc' linux",
             "type": "lldb",
             "request": "launch",
             "cargo": {
                 "args": [
                     "test",
-                    "--package=tinic-ipc-protocol"
+                    "--bin=tinic-ipc",
+                    "--package=tinic-ipc"
                 ]
             }
         },
-        {
-            "name": "Debug unit tests in library 'tinic_database'",
-            "type": "lldb",
-            "request": "launch",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--package=tinic-database"
-                ]
-            }
-        }
     ]
 }

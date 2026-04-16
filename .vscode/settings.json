@@ -3,6 +3,7 @@
         "Framebuffer",
         "glutin",
         "libretro",
+        "opengl",
         "OPENGL",
         "tinic",
         "winit"
