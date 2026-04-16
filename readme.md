@@ -8,7 +8,6 @@
     Tinic is a runtime for Libretro cores that abstracts the native API and provides a ready-to-use foundation for cross-platform frontends.
 </p>
 
-
 # 🎯 What is Tinic for?
 
 Most frontends that implement the Libretro API need to create their own
@@ -23,7 +22,7 @@ All of this makes frontend development much more complex and exhausting
 than it should be.\
 Shouldn't a frontend simply be a user-friendly interface?
 
-### 👉 The answer is yes.
+### 👉 The answer is yes
 
 Handling audio, video implementation, and complex FFI details should not
 be the responsibility of the interface layer.\
@@ -45,8 +44,8 @@ without worrying about the complexity of the Libretro API.
 
 Currently, there are **two ways** to use Tinic:
 
--   **LibTinic** (direct integration in Rust)
--   **Tinic-ipc** (use from other programming languages)
+- **LibTinic** (direct integration in Rust)
+- **Tinic-ipc** (use from other programming languages)
 
 ------------------------------------------------------------------------
 
@@ -138,7 +137,7 @@ through messages.
 
 📌 Example available at:\
 **Retronic (frontend using Tinic-ipc)**\
-https://github.com/Xsimple1010/retronic/tree/master/native
+<https://github.com/Xsimple1010/retronic/tree/master/native>
 
 ------------------------------------------------------------------------
 
@@ -146,10 +145,10 @@ https://github.com/Xsimple1010/retronic/tree/master/native
 
 Like **RetroArch**, Tinic also requires external files such as:
 
--   **RDB** (database containing ROM collections)
--   Thumbnails
--   Core information files
--   And of course, save states
+- **RDB** (database containing ROM collections)
+- Thumbnails
+- Core information files
+- And of course, save states
 
 ### 🗂️ Tinic Super
 
