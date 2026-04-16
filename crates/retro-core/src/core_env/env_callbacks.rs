@@ -189,8 +189,6 @@ pub unsafe extern "C" fn get_proc_address(sym: *const c_char) -> retro_proc_addr
             Some(core_ctx) => {
                 let fc_name = get_str_from_ptr(sym);
 
-                println!("get_proc:{fc_name:?}");
-
                 let proc_address = core_ctx.callbacks.video.get_proc_address(&fc_name);
                 if proc_address.is_null() {
                     return None;
