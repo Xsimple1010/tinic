@@ -8,6 +8,7 @@ use retro_video::RetroVideo;
 use std::path::PathBuf;
 use std::sync::atomic::Ordering;
 use std::{path::Path, sync::Arc};
+use tinic_generics::error_handle::TinicResult;
 use tinic_generics::retro_paths::RetroPaths;
 use tinic_generics::{constants::SAVE_IMAGE_EXTENSION_FILE, error_handle::ErrorHandle};
 use winit::dpi::PhysicalSize;
@@ -70,11 +71,11 @@ impl TinicGameCtx {
         })
     }
 
-    pub fn resize_window(&mut self, size: PhysicalSize<u32>) -> Result<(), ErrorHandle> {
+    pub fn resize_window(&mut self, size: PhysicalSize<u32>) -> TinicResult<()> {
         self.retro_video.resize_window(size.width, size.height)
     }
 
-    pub fn toggle_keyboard_usage(&self) -> Result<(), ErrorHandle> {
+    pub fn toggle_keyboard_usage(&self) -> TinicResult<()> {
         if self.controller.is_using_keyboard() {
             self.disable_keyboard();
             Ok(())
@@ -88,7 +89,7 @@ impl TinicGameCtx {
         self.window_listener.keyboard_state(false)
     }
 
-    pub fn active_keyboard(&self) -> Result<(), ErrorHandle> {
+    pub fn active_keyboard(&self) -> TinicResult<()> {
         let keyboard = self.controller.active_keyboard();
         self.window_listener.keyboard_state(true);
 
@@ -100,7 +101,7 @@ impl TinicGameCtx {
         self.controller.update_keyboard(native, pressed)
     }
 
-    pub fn create_window(&mut self, event_loop: &ActiveEventLoop) -> Result<(), ErrorHandle> {
+    pub fn create_window(&mut self, event_loop: &ActiveEventLoop) -> TinicResult<()> {
         self.retro_video
             .create_window(&self.retro_core.av_info, event_loop)
             .map_err(|e| {
@@ -109,7 +110,7 @@ impl TinicGameCtx {
             })
     }
 
-    pub fn init_core(&mut self) -> Result<(), ErrorHandle> {
+    pub fn init_core(&mut self) -> TinicResult<()> {
         let err_handle = |e: ErrorHandle| {
             self.window_listener.game_state_change(GameState::Closed);
             e
@@ -119,7 +120,9 @@ impl TinicGameCtx {
             return Ok(());
         }
 
+        self.can_request_new_frames = false;
         self.retro_video.create_draw_context().map_err(err_handle)?;
+
         self.retro_core
             .load_game(&self.rom_path)
             .map_err(err_handle)?;
@@ -132,6 +135,7 @@ impl TinicGameCtx {
             .init(&self.retro_core.av_info)
             .map_err(err_handle)?;
 
+        self.can_request_new_frames = true;
         self.controller.stop_thread_events();
         self.window_listener.game_state_change(GameState::Running);
         self.window_listener
@@ -149,14 +153,13 @@ impl TinicGameCtx {
             .window_state_change(WindowState::Closed);
     }
 
-    pub fn destroy_retro_ctx(&mut self) -> Result<(), ErrorHandle> {
+    pub fn destroy_retro_ctx(&mut self) -> TinicResult<()> {
         if let Err(r) = self.retro_core.av_info.video.graphic_api.try_destroy_ctx() {
             println!("{r:?}");
         }
         self.retro_video.teardown_graphics()?;
 
         self.retro_core.de_init()?;
-        println!("deinit do core");
         self.retro_audio.stop();
         self.controller.resume_thread_events();
 
@@ -167,11 +170,11 @@ impl TinicGameCtx {
         Ok(())
     }
 
-    pub fn redraw_request(&self) -> Result<(), ErrorHandle> {
+    pub fn redraw_request(&self) -> TinicResult<()> {
         self.retro_video.request_redraw()
     }
 
-    pub fn draw_new_frame(&mut self) -> Result<(), ErrorHandle> {
+    pub fn draw_new_frame(&mut self) -> TinicResult<()> {
         if !self.can_request_new_frames {
             return Ok(());
         }
@@ -190,11 +193,11 @@ impl TinicGameCtx {
         Ok(())
     }
 
-    pub fn reset(&self) -> Result<(), ErrorHandle> {
+    pub fn reset(&self) -> TinicResult<()> {
         self.retro_core.reset()
     }
 
-    pub fn save_state(&self, slot: usize) -> Result<(), ErrorHandle> {
+    pub fn save_state(&self, slot: usize) -> TinicResult<()> {
         // Erros handles
         let err_handle = |e: ErrorHandle| {
             self.window_listener
@@ -237,7 +240,7 @@ impl TinicGameCtx {
         Ok(())
     }
 
-    pub fn load_state(&self, slot: usize) -> Result<(), ErrorHandle> {
+    pub fn load_state(&self, slot: usize) -> TinicResult<()> {
         match self.retro_core.load_state(slot) {
             Ok(_) => {
                 self.window_listener.load_state_result(true);
@@ -250,16 +253,16 @@ impl TinicGameCtx {
         }
     }
 
-    pub fn print_screen(&self, out_path: &Path) -> Result<(), ErrorHandle> {
+    pub fn print_screen(&self, out_path: &Path) -> TinicResult<()> {
         self.retro_video
             .print_screen(out_path, &self.retro_core.av_info)
     }
 
-    pub fn toggle_full_screen_mode(&mut self) -> Result<(), ErrorHandle> {
+    pub fn toggle_full_screen_mode(&mut self) -> TinicResult<()> {
         self.retro_video.toggle_window_mode()
     }
 
-    pub fn toggle_can_request_new_frames(&mut self) -> Result<(), ErrorHandle> {
+    pub fn toggle_can_request_new_frames(&mut self) -> TinicResult<()> {
         if self.can_request_new_frames {
             self.pause()
         } else {
@@ -267,7 +270,7 @@ impl TinicGameCtx {
         }
     }
 
-    pub fn pause(&mut self) -> Result<(), ErrorHandle> {
+    pub fn pause(&mut self) -> TinicResult<()> {
         self.controller.resume_thread_events();
         self.can_request_new_frames = false;
         self.retro_audio.pause()?;
@@ -275,7 +278,7 @@ impl TinicGameCtx {
         Ok(())
     }
 
-    pub fn resume(&mut self) -> Result<(), ErrorHandle> {
+    pub fn resume(&mut self) -> TinicResult<()> {
         self.controller.stop_thread_events();
         self.can_request_new_frames = true;
         self.retro_audio.play()?;
@@ -283,7 +286,7 @@ impl TinicGameCtx {
         Ok(())
     }
 
-    pub fn connect_controller(&self, device: RetroGamePad) -> Result<(), ErrorHandle> {
+    pub fn connect_controller(&self, device: RetroGamePad) -> TinicResult<()> {
         self.retro_core
             .connect_controller(device.retro_port, device.retro_type)
     }

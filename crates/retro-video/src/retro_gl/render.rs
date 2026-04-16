@@ -101,7 +101,7 @@ impl Render {
     /// Chamado APÓS load_game.
     /// av_info já tem max_width, max_height, depth e stencil
     /// setados pelo core via SET_HW_RENDER.
-    pub fn init_framebuffer(&mut self, av_info: &Arc<AvInfo>) -> TinicResult<()> {
+    pub fn init_frame_buffer(&mut self, av_info: &Arc<AvInfo>) -> TinicResult<()> {
         let g_api = &av_info.video.graphic_api;
         let geo = &av_info.video.geometry;
 

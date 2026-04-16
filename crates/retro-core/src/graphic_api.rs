@@ -73,17 +73,9 @@ impl GraphicApi {
     pub fn try_reset_ctx(&self) -> TinicResult<()> {
         let context_reset_fn = self.context_reset.read()?.clone();
 
-        println!(
-            "try_reset_ctx: fn pointer = {:?}",
-            context_reset_fn.map(|o| o.map(|f| f as usize))
-        );
-
         if let Some(Some(f)) = context_reset_fn {
-            println!("try_reset_ctx: chamando core context_reset");
             unsafe { f() }
-            println!("try_reset_ctx: core context_reset retornou");
         } else {
-            println!("try_reset_ctx: sem fn pointer, pulando");
         }
 
         Ok(())
@@ -95,7 +87,6 @@ impl GraphicApi {
         if let Some(Some(context_destroy)) = context_destroy {
             unsafe {
                 context_destroy();
-                println!("core foi notifica da remoção do contexto")
             }
         }
 

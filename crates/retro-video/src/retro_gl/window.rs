@@ -294,7 +294,7 @@ impl RetroWindowContext for RetroGlWindow {
             None => return Ok(()),
         };
 
-        renderer.init_framebuffer(av_info)?;
+        renderer.init_frame_buffer(av_info)?;
         av_info.video.graphic_api.try_reset_ctx()
     }
 }
