@@ -1,5 +1,6 @@
 use crate::raw_texture::RawTextureData;
 use crate::retro_env_callback::RetroVideoCb;
+use crate::retro_gl::proc_resolver::GlProcResolver;
 use crate::retro_window::{RetroWindowContext, RetroWindowMode};
 use crate::sync::RetroSync;
 use crate::{print_scree::PrintScree, retro_gl::window::RetroGlWindow};
@@ -11,24 +12,91 @@ use std::{
     path::{Path, PathBuf},
     sync::Arc,
 };
-use tinic_generics::error_handle::TinicResult;
 use tinic_generics::{
-    error_handle::ErrorHandle,
+    error_handle::{ErrorHandle, TinicResult},
     types::{ArcTMutex, TMutex},
 };
 use winit::event_loop::ActiveEventLoop;
 
+pub enum WindowCtx {
+    OpenGl(RetroGlWindow),
+}
+
+impl WindowCtx {
+    fn init_context(&mut self) -> TinicResult<()> {
+        match self {
+            WindowCtx::OpenGl(w) => w.init_context(),
+        }
+    }
+
+    fn destroy(&mut self) -> TinicResult<()> {
+        match self {
+            WindowCtx::OpenGl(w) => w.destroy(),
+        }
+    }
+
+    fn request_redraw(&self) {
+        match self {
+            WindowCtx::OpenGl(w) => w.request_redraw(),
+        }
+    }
+
+    fn draw_context_as_initialized(&self) -> bool {
+        match self {
+            WindowCtx::OpenGl(w) => w.draw_context_as_initialized(),
+        }
+    }
+
+    fn draw_new_frame(&self) -> TinicResult<()> {
+        match self {
+            WindowCtx::OpenGl(w) => w.draw_new_frame(),
+        }
+    }
+
+    fn toggle_window_model(&mut self) {
+        match self {
+            WindowCtx::OpenGl(w) => w.toggle_window_model(),
+        }
+    }
+
+    fn set_window_mode(&mut self, mode: RetroWindowMode) {
+        match self {
+            WindowCtx::OpenGl(w) => w.set_window_mode(mode),
+        }
+    }
+
+    fn resize(&mut self, width: u32, height: u32) {
+        match self {
+            WindowCtx::OpenGl(w) => w.resize(width, height),
+        }
+    }
+
+    fn prepare_for_core(&mut self) {
+        match self {
+            WindowCtx::OpenGl(w) => w.prepare_for_core(),
+        }
+    }
+
+    fn init_frame_buffer(&mut self, av_info: &Arc<AvInfo>) -> TinicResult<()> {
+        match self {
+            WindowCtx::OpenGl(w) => w.init_frame_buffer(av_info),
+        }
+    }
+}
+
 pub struct RetroVideo {
-    window_ctx: ArcTMutex<Option<Box<dyn RetroWindowContext>>>,
+    window_ctx: Option<WindowCtx>,
     texture: ArcTMutex<RawTextureData>,
+    proc_resolve: Arc<GlProcResolver>,
     pub sync: RetroSync,
 }
 
 impl Default for RetroVideo {
     fn default() -> Self {
         Self {
-            window_ctx: TMutex::new(None),
+            window_ctx: None,
             texture: TMutex::new(RawTextureData::new()),
+            proc_resolve: Arc::new(GlProcResolver::new()),
             sync: RetroSync::new(0.0002),
         }
     }
@@ -43,53 +111,70 @@ impl RetroVideo {
         match *av_info.video.graphic_api.context_type.read()? {
             RETRO_HW_CONTEXT_OPENGL_CORE | RETRO_HW_CONTEXT_OPENGL | RETRO_HW_CONTEXT_NONE => {
                 self.window_ctx
-                    .try_load()?
-                    .replace(Box::new(RetroGlWindow::new(event_loop, av_info)));
+                    .replace(WindowCtx::OpenGl(RetroGlWindow::new(
+                        event_loop,
+                        av_info,
+                        &self.texture,
+                        self.proc_resolve.clone(),
+                    )));
             }
             _ => {
-                return Err(ErrorHandle {
-                    message: "suporte para a api selecionada não está disponível".to_owned(),
-                });
+                return Err(ErrorHandle::new(
+                    "[create_window]: unsupported graphics API",
+                ));
             }
-        };
+        }
 
         Ok(())
     }
 
-    pub fn create_draw_context(&self) -> Result<(), ErrorHandle> {
-        let window_ctx = &mut *self.window_ctx.try_load()?;
+    pub fn create_draw_context(&mut self) -> Result<(), ErrorHandle> {
+        let ctx = self.window_ctx.as_mut().ok_or_else(|| {
+            ErrorHandle::new("[create_draw_context]: window context not initialized")
+        })?;
 
-        let window_ctx = match window_ctx {
-            Some(ctx) => ctx,
-            None => return Err(ErrorHandle::new("windows context is not initialized")),
-        };
-
-        window_ctx.init_context()
+        ctx.init_context()?;
+        Ok(())
     }
 
     pub fn draw_context_as_initialized(&self) -> bool {
-        let window_ctx = match self.window_ctx.try_load() {
-            Ok(ctx) => ctx,
-            Err(_) => return false,
-        };
-
-        match &*window_ctx {
-            Some(ctx) => ctx.draw_context_as_initialized(),
-            None => false,
-        }
+        self.window_ctx
+            .as_ref()
+            .map(|ctx| ctx.draw_context_as_initialized())
+            .unwrap_or(false)
     }
 
-    pub fn destroy_window(&self) {
-        self.window_ctx.store(None);
+    pub fn teardown_graphics(&mut self) -> TinicResult<()> {
+        let ctx = self.window_ctx.as_mut().ok_or_else(|| {
+            ErrorHandle::new("[teardown_graphics]: window context not initialized")
+        })?;
+
+        ctx.destroy()?;
+
         self.texture.store(RawTextureData::new());
+        self.window_ctx = None;
+
+        Ok(())
     }
 
     pub fn request_redraw(&self) -> Result<(), ErrorHandle> {
-        if let Some(win) = &*self.window_ctx.try_load()? {
-            win.request_redraw();
-        }
+        let ctx = self
+            .window_ctx
+            .as_ref()
+            .ok_or_else(|| ErrorHandle::new("[request_redraw]: window context not initialized"))?;
 
+        ctx.request_redraw();
         Ok(())
+    }
+
+    pub fn draw_new_frame(&self) -> Result<(), ErrorHandle> {
+        let ctx = self
+            .window_ctx
+            .as_ref()
+            .ok_or_else(|| ErrorHandle::new("[draw_new_frame]: window context not initialized"))?;
+
+        ctx.draw_new_frame()
+            .map_err(|e| ErrorHandle::new(&format!("[draw_new_frame]: {e:?}")))
     }
 
     pub fn print_screen(&self, out_path: &Path, av_info: &Arc<AvInfo>) -> Result<(), ErrorHandle> {
@@ -101,51 +186,56 @@ impl RetroVideo {
     }
 
     pub fn toggle_window_mode(&mut self) -> Result<(), ErrorHandle> {
-        if let Some(win) = &mut *self.window_ctx.try_load()? {
-            win.toggle_window_model();
-        }
+        let ctx = self.window_ctx.as_mut().ok_or_else(|| {
+            ErrorHandle::new("[toggle_window_mode]: window context not initialized")
+        })?;
+
+        ctx.toggle_window_model();
         Ok(())
     }
 
     pub fn set_window_mode(&mut self, mode: RetroWindowMode) -> Result<(), ErrorHandle> {
-        if let Some(win) = &mut *self.window_ctx.try_load()? {
-            win.set_window_mode(mode);
-        }
+        let ctx = self
+            .window_ctx
+            .as_mut()
+            .ok_or_else(|| ErrorHandle::new("[set_window_mode]: window context not initialized"))?;
+
+        ctx.set_window_mode(mode);
         Ok(())
     }
 
     pub fn resize_window(&mut self, width: u32, height: u32) -> Result<(), ErrorHandle> {
-        if let Some(win) = &mut *self.window_ctx.try_load()? {
-            win.resize(width, height);
-        }
+        let ctx = self
+            .window_ctx
+            .as_mut()
+            .ok_or_else(|| ErrorHandle::new("[resize_window]: window context not initialized"))?;
 
+        ctx.resize(width, height);
         Ok(())
     }
 
-    pub fn get_core_cb(&self) -> RetroVideoCb {
-        RetroVideoCb::new(self.texture.clone(), self.window_ctx.clone())
+    pub fn get_core_cb(&self) -> TinicResult<RetroVideoCb> {
+        Ok(RetroVideoCb::new(
+            self.texture.clone(),
+            self.proc_resolve.clone(),
+        ))
     }
 
-    pub fn prepare_to_core(&self) -> TinicResult<()> {
-        let window_ctx = &mut *self.window_ctx.try_load()?;
+    pub fn prepare_to_core(&mut self) -> TinicResult<()> {
+        let ctx = self
+            .window_ctx
+            .as_mut()
+            .ok_or_else(|| ErrorHandle::new("[prepare_to_core]: window context not initialized"))?;
 
-        let window_ctx = match window_ctx {
-            Some(ctx) => ctx,
-            None => return Err(ErrorHandle::new("windows context is not initialized")),
-        };
-
-        window_ctx.prepare_for_core();
+        ctx.prepare_for_core();
         Ok(())
     }
 
-    pub fn init_frame_buffer(&self, av_info: &Arc<AvInfo>) -> TinicResult<()> {
-        let window_ctx = &mut *self.window_ctx.try_load()?;
+    pub fn init_frame_buffer(&mut self, av_info: &Arc<AvInfo>) -> TinicResult<()> {
+        let ctx = self.window_ctx.as_mut().ok_or_else(|| {
+            ErrorHandle::new("[init_frame_buffer]: window context not initialized")
+        })?;
 
-        let window_ctx = match window_ctx {
-            Some(ctx) => ctx,
-            None => return Err(ErrorHandle::new("windows context is not initialized")),
-        };
-
-        window_ctx.init_frame_buffer(av_info)
+        ctx.init_frame_buffer(av_info)
     }
 }

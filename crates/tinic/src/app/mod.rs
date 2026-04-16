@@ -42,23 +42,21 @@ impl GameInstance {
     pub fn create_dispatcher(&self) -> GameInstanceDispatchers {
         self.game_dispatchers.clone()
     }
-
-    fn destroy_window_and_render_context(&self, event_loop: &ActiveEventLoop, ctx: &TinicGameCtx) {
-        let _ = ctx.destroy_retro_ctx();
-        event_loop.exit();
-    }
 }
 
 impl ApplicationHandler<GameInstanceActions> for GameInstance {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        if let Err(e) = self.ctx.create_window(event_loop) {
-            println!("{:?}", e);
-            event_loop.exit();
+        {
+            if let Err(e) = self.ctx.create_window(event_loop) {
+                println!("{:?}", e);
+                event_loop.exit();
+            }
         }
 
         if let Err(e) = self.ctx.init_core() {
             println!("{:?}", e);
-            self.destroy_window_and_render_context(event_loop, &self.ctx);
+            let _ = self.ctx.destroy_retro_ctx();
+            event_loop.exit();
         }
     }
 
@@ -73,7 +71,8 @@ impl ApplicationHandler<GameInstanceActions> for GameInstance {
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
         if let Err(e) = self.ctx.redraw_request() {
             println!("{:?}", e);
-            self.destroy_window_and_render_context(event_loop, &self.ctx);
+            let _ = self.ctx.destroy_retro_ctx();
+            event_loop.exit();
         }
     }
 

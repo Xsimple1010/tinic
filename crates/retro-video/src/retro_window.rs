@@ -1,27 +1,22 @@
-use std::sync::Arc;
-
 use retro_core::av_info::AvInfo;
+use std::sync::Arc;
 use tinic_generics::error_handle::TinicResult;
-
-use crate::raw_texture::RawTextureData;
 
 pub enum RetroWindowMode {
     Windowed,
     FullScreen,
 }
 
-pub trait RetroWindowContext {
+pub trait RetroWindowContext: 'static {
     fn request_redraw(&self);
 
-    fn draw_new_frame(&self, texture: &RawTextureData);
-
-    fn get_proc_address(&self, proc_name: &str) -> *const ();
+    fn draw_new_frame(&self) -> TinicResult<()>;
 
     fn set_window_mode(&mut self, mode: RetroWindowMode);
 
     fn toggle_window_model(&mut self);
 
-    fn context_destroy(&mut self) -> TinicResult<()>;
+    fn destroy(&mut self) -> TinicResult<()>;
 
     fn init_context(&mut self) -> TinicResult<()>;
 

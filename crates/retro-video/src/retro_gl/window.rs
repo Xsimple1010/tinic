@@ -1,15 +1,16 @@
 use super::render::Render;
 use crate::raw_texture::RawTextureData;
+use crate::retro_gl::proc_resolver::GlProcResolver;
 use crate::retro_window::{RetroWindowContext, RetroWindowMode};
 use crate::winit::{event_loop::ActiveEventLoop, window::Window};
 use glutin::context::GlProfile;
+use glutin::prelude::{NotCurrentGlContext, PossiblyCurrentGlContext};
 use glutin::{
     config::{Config, ConfigTemplateBuilder},
     context::{
         ContextApi, ContextAttributesBuilder, NotCurrentContext, PossiblyCurrentContext, Version,
     },
     display::{GetGlDisplay, GlDisplay},
-    prelude::{NotCurrentGlContext, PossiblyCurrentGlContext},
     surface::{GlSurface, Surface, WindowSurface},
 };
 use glutin_winit::{DisplayBuilder, GlWindow};
@@ -17,11 +18,12 @@ use libretro_sys::binding_libretro::retro_hw_context_type;
 use raw_window_handle::HasWindowHandle;
 use retro_core::av_info::AvInfo;
 use retro_core::graphic_api::GraphicApi;
+use std::ffi::CString;
 use std::num::NonZeroU32;
-use std::ptr::null;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use tinic_generics::error_handle::{ErrorHandle, TinicResult};
+use tinic_generics::types::TMutex;
 use winit::dpi::PhysicalSize;
 use winit::window::Fullscreen;
 
@@ -33,11 +35,8 @@ pub struct RetroGlWindow {
     gl_config: Config,
     window: Window,
     av_info: Arc<AvInfo>,
-}
-
-fn is_wayland() -> bool {
-    std::env::var("WAYLAND_DISPLAY").is_ok()
-        && !std::env::var("WAYLAND_DISPLAY").unwrap().is_empty()
+    texture: Arc<TMutex<RawTextureData>>,
+    pub proc_resolve: Arc<GlProcResolver>, // 👈 NOVO
 }
 
 fn create_gl_context(
@@ -76,23 +75,15 @@ fn create_gl_context(
         _ => return Err(ErrorHandle::new("Unsupported HW context type")),
     };
 
-    // No Wayland/EGL, o GLEW de alguns cores (ex: PPSSPP) falha com Core Profile.
-    // Usa Compatibility Profile como fallback para garantir compatibilidade.
-    let profile = if is_wayland() {
-        Some(GlProfile::Compatibility)
-    } else {
-        Some(GlProfile::Core)
-    };
-
     let primary_attrs = ContextAttributesBuilder::new()
         .with_context_api(primary)
-        .with_profile(profile.unwrap())
+        .with_profile(GlProfile::Compatibility)
         .with_debug(debug)
         .build(raw_window_handle);
 
     let fallback_attrs = ContextAttributesBuilder::new()
         .with_context_api(fallback)
-        .with_profile(GlProfile::Compatibility) // fallback sempre Compatibility
+        .with_profile(GlProfile::Compatibility)
         .with_debug(debug)
         .build(raw_window_handle);
 
@@ -104,6 +95,7 @@ fn create_gl_context(
                     .create_context(gl_config, &fallback_attrs)
                     .expect("Failed to create any GL context")
             });
+
         Ok(ctx)
     }
 }
@@ -113,38 +105,41 @@ impl RetroWindowContext for RetroGlWindow {
         self.window.request_redraw();
     }
 
-    fn draw_new_frame(&self, texture: &RawTextureData) {
+    fn draw_new_frame(&self) -> TinicResult<()> {
         let size = self.window.inner_size();
 
         let renderer = match &self.renderer {
             Some(renderer) => renderer,
-            None => return,
+            None => {
+                return Err(ErrorHandle::new(
+                    "RetroGlWindow: renderer não inicializado ao tentar desenhar frame",
+                ));
+            }
         };
+
         let gl_surface = match &self.gl_surface {
             Some(gl_surface) => gl_surface,
-            None => return,
+            None => {
+                return Err(ErrorHandle::new(
+                    "RetroGlWindow: gl_surface não inicializada ao tentar swap_buffers",
+                ));
+            }
         };
+
         let gl_context = match &self.gl_context {
             Some(gl_context) => gl_context,
-            None => return,
+            None => {
+                return Err(ErrorHandle::new(
+                    "RetroGlWindow: gl_context não inicializado ao tentar swap_buffers",
+                ));
+            }
         };
 
-        renderer.draw_new_frame(
-            texture,
-            &self.av_info,
-            size.width as i32,
-            size.height as i32,
-        );
+        renderer.draw_new_frame(&self.av_info, size.width as i32, size.height as i32)?;
+
         gl_surface.swap_buffers(gl_context).unwrap();
-    }
 
-    fn get_proc_address(&self, proc_name: &str) -> *const () {
-        let cstr = std::ffi::CString::new(proc_name).unwrap();
-
-        match &self.gl_context {
-            Some(gl_context) => gl_context.display().get_proc_address(cstr.as_c_str()) as *const (),
-            None => null(),
-        }
+        Ok(())
     }
 
     fn set_window_mode(&mut self, mode: RetroWindowMode) {
@@ -165,7 +160,7 @@ impl RetroWindowContext for RetroGlWindow {
         }
     }
 
-    fn context_destroy(&mut self) -> TinicResult<()> {
+    fn destroy(&mut self) -> TinicResult<()> {
         let ctx = match self.gl_context.take() {
             Some(ctx) => ctx,
             None => return Ok(()),
@@ -176,33 +171,42 @@ impl RetroWindowContext for RetroGlWindow {
             None => return Ok(()),
         };
 
-        // 🔥 1. garantir contexto ativo
+        println!("torna ctx gl current");
+
         if let Err(e) = ctx.make_current(&surface) {
             println!("{e:?}");
         }
 
-        // 🔥 2. destruir render (com contexto ativo)
+        if let Err(r) = self.av_info.video.graphic_api.try_destroy_ctx() {
+            println!("{r:?}");
+        }
+
+        println!("remove o render");
+
         if let Some(mut renderer) = self.renderer.take() {
             renderer.deinit(&self.av_info);
-            drop(renderer); // 🔥 FORÇA DROP AQUI
         }
 
-        // 🔥 3. desativar contexto
-        if let Err(e) = ctx.make_not_current() {
-            println!("{e:?}");
-        }
+        let ctx = match ctx.make_not_current() {
+            Ok(ctx) => ctx,
+            Err(e) => {
+                println!("{e:?}");
+                return Err(ErrorHandle::new("window context not dropped"));
+            }
+        };
 
-        // 🔥 4. destruir surface ANTES do contexto
         drop(surface);
+        drop(ctx);
 
-        // 🔥 5. destruir contexto por último
-        // drop(ctx);
+        // limpa resolver (evita ponteiro velho)
+        self.proc_resolve.set_loader(|_| std::ptr::null());
+
+        println!("final da remoção do render");
 
         Ok(())
     }
 
     fn init_context(&mut self) -> TinicResult<()> {
-        // Create gl context.
         let gl_context = create_gl_context(
             &self.window,
             &self.gl_config,
@@ -232,11 +236,22 @@ impl RetroWindowContext for RetroGlWindow {
 
         gl_context.make_current(&gl_surface).unwrap();
 
-        let render = Render::new(self.gl_config.display()).unwrap();
+        // 🔥 registra resolver aqui
+        let display = self.gl_config.display();
+        let resolver = self.proc_resolve.clone();
+
+        resolver.set_loader(move |name: &str| {
+            let cstr = CString::new(name).unwrap();
+            display.get_proc_address(cstr.as_c_str()) as *const ()
+        });
+
+        let render = Render::new(self.gl_config.display(), &self.texture).unwrap();
 
         self.renderer = Some(render);
         self.gl_context = Some(gl_context);
         self.gl_surface = Some(gl_surface);
+
+        println!("contexto criado");
 
         Ok(())
     }
@@ -250,6 +265,7 @@ impl RetroWindowContext for RetroGlWindow {
             Some(gl_surface) => gl_surface,
             None => return,
         };
+
         let gl_context = match &self.gl_context {
             Some(gl_context) => gl_context,
             None => return,
@@ -267,12 +283,9 @@ impl RetroWindowContext for RetroGlWindow {
     }
 
     fn prepare_for_core(&self) {
-        let renderer = match &self.renderer {
-            Some(renderer) => renderer,
-            None => return,
-        };
-
-        renderer.prepare_for_core()
+        if let Some(renderer) = &self.renderer {
+            renderer.prepare_for_core();
+        }
     }
 
     fn init_frame_buffer(&mut self, av_info: &Arc<AvInfo>) -> TinicResult<()> {
@@ -282,14 +295,19 @@ impl RetroWindowContext for RetroGlWindow {
         };
 
         renderer.init_framebuffer(av_info)?;
-
         av_info.video.graphic_api.try_reset_ctx()
     }
 }
 
 impl RetroGlWindow {
-    pub fn new(event_loop: &ActiveEventLoop, av_info: &Arc<AvInfo>) -> Self {
+    pub fn new(
+        event_loop: &ActiveEventLoop,
+        av_info: &Arc<AvInfo>,
+        texture: &Arc<TMutex<RawTextureData>>,
+        proc_resolve: Arc<GlProcResolver>,
+    ) -> Self {
         let window_size = PhysicalSize::new(800, 480);
+
         let attributes = Window::default_attributes()
             .with_title("Tinic")
             .with_inner_size(window_size)
@@ -300,7 +318,7 @@ impl RetroGlWindow {
 
         let (window, gl_config) = display_builder
             .build(event_loop, template, |configs| {
-                configs.reduce(|_, config| config).unwrap()
+                configs.reduce(|_, c| c).unwrap()
             })
             .unwrap();
 
@@ -315,6 +333,8 @@ impl RetroGlWindow {
             gl_config,
             av_info: av_info.clone(),
             window_mode: RetroWindowMode::Windowed,
+            proc_resolve,
+            texture: texture.clone(),
         }
     }
 }

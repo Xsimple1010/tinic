@@ -1,5 +1,6 @@
 use std::ffi::c_uint;
 
+#[derive(Clone)]
 pub struct RawTextureData {
     pub data: Vec<u8>,
     pub width: c_uint,

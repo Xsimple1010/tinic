@@ -12,7 +12,13 @@ impl GameInstance {
     ) {
         let result: Result<(), ErrorHandle> = match event {
             WindowEvent::CloseRequested => {
-                self.destroy_window_and_render_context(event_loop, &self.ctx);
+                println!("pedido de fechamento da janela");
+                let _ = self.ctx.destroy_retro_ctx();
+                event_loop.exit();
+                Ok(())
+            }
+            WindowEvent::Destroyed => {
+                println!("janela destruída pelo winit");
                 Ok(())
             }
             WindowEvent::RedrawRequested => self.ctx.draw_new_frame(),
@@ -43,8 +49,9 @@ impl GameInstance {
         };
 
         if let Err(e) = result {
-            self.destroy_window_and_render_context(event_loop, &self.ctx);
             println!("Error: {e:?}");
+            let _ = self.ctx.destroy_retro_ctx();
+            event_loop.exit();
         }
     }
 }

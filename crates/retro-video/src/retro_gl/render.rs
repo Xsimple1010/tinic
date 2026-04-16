@@ -17,11 +17,15 @@ use glutin::prelude::GlDisplay;
 use retro_core::av_info::AvInfo;
 use std::{ffi::CString, mem::size_of, sync::atomic::Ordering};
 use std::{rc::Rc, sync::Arc};
-use tinic_generics::error_handle::{ErrorHandle, TinicResult};
+use tinic_generics::{
+    error_handle::{ErrorHandle, TinicResult},
+    types::TMutex,
+};
 
 pub struct Render {
+    texture: Arc<TMutex<RawTextureData>>,
     _program: ShaderProgram,
-    _texture: Option<Texture2D>,
+    _texture2d: Option<Texture2D>,
     _i_pos: GLint,
     _i_tex_pos: GLint,
     _u_tex: GLint,
@@ -36,7 +40,10 @@ impl Render {
     /// Chamado ANTES de load_game.
     /// Cria apenas shaders e o loader GL.
     /// VAO, VBO, FBO e textura são criados em init_framebuffer().
-    pub fn new<D: GlDisplay>(gl_display: D) -> Result<Render, ErrorHandle> {
+    pub fn new<D: GlDisplay>(
+        gl_display: D,
+        texture: &Arc<TMutex<RawTextureData>>,
+    ) -> Result<Render, ErrorHandle> {
         let vertex_shader_src = "
             #version 330 core
             in vec2 i_pos;
@@ -78,7 +85,7 @@ impl Render {
 
         Ok(Render {
             _program: program,
-            _texture: None,
+            _texture2d: None,
             _i_pos: i_pos,
             _i_tex_pos: i_tex_pos,
             _u_tex: u_tex,
@@ -87,6 +94,7 @@ impl Render {
             _fbo: None,
             _rbo: None,
             gl,
+            texture: texture.clone(),
         })
     }
 
@@ -103,6 +111,7 @@ impl Render {
         let vao = VertexArray::new(self.gl.clone());
         let vbo = GlBuffer::new(gl::ARRAY_BUFFER, self.gl.clone());
         let fbo = FrameBuffer::new(self.gl.clone());
+        println!("fbo id: {:?}", fbo.get_id());
         let texture = Texture2D::new(av_info, self.gl.clone())?;
 
         fbo.bind();
@@ -143,7 +152,7 @@ impl Render {
         self._vbo = Some(vbo);
         self._fbo = Some(fbo);
         self._rbo = rbo;
-        self._texture = Some(texture);
+        self._texture2d = Some(texture);
 
         Ok(())
     }
@@ -198,14 +207,13 @@ impl Render {
 
     pub fn draw_new_frame(
         &self,
-        texture: &RawTextureData,
         av_info: &Arc<AvInfo>,
         win_width: i32,
         win_height: i32,
-    ) {
+    ) -> TinicResult<()> {
         let vao = match &self._vao {
             Some(vao) => vao,
-            None => return,
+            None => return Err(ErrorHandle::new("Erro ao ler o voa")),
         };
 
         unsafe {
@@ -214,10 +222,14 @@ impl Render {
             self.gl.ClearColor(0.0, 0.0, 0.0, 1.0);
             self.gl.Clear(gl::COLOR_BUFFER_BIT);
 
-            let texture2d = match &self._texture {
+            let texture2d = match &self._texture2d {
                 Some(tex) => tex,
-                None => return,
+                None => return Err(ErrorHandle::new("texture2d não foi definida pelo opengl")),
             };
+
+            let texture = &*self
+                .texture
+                .load_or_spawn_err("Não foi possível ler a textura do core")?;
 
             self.refresh_vertex(
                 &av_info,
@@ -235,7 +247,7 @@ impl Render {
                 self.gl.DrawArrays(gl::TRIANGLE_STRIP, 0, 4);
                 vao.un_bind();
                 self._program.un_use_program();
-                return;
+                return Ok(());
             }
 
             texture2d.push(texture);
@@ -247,6 +259,8 @@ impl Render {
             vao.un_bind();
             self._program.un_use_program();
         }
+
+        Ok(())
     }
 
     pub fn deinit(&mut self, av_info: &Arc<AvInfo>) {
@@ -260,13 +274,13 @@ impl Render {
 
         // 🔥 2. resetar FBO do libretro (CRÍTICO)
         if let Ok(mut fbo) = av_info.video.graphic_api.fbo.write() {
-            fbo.take(); // ou replace(0)
+            fbo.replace(0);
         }
 
         // 🔥 3. destruir na ordem correta (dependências)
         // textura depende do FBO → destruir depois de desbind
 
-        if let Some(texture) = self._texture.take() {
+        if let Some(texture) = self._texture2d.take() {
             texture.un_bind(); // se tiver
             // drop acontece aqui
         }
@@ -292,7 +306,7 @@ impl Render {
 
         // 🔥 4. forçar flush (ajuda drivers chatos)
         unsafe {
-            self.gl.Flush();
+            self.gl.Finish();
         }
     }
 }

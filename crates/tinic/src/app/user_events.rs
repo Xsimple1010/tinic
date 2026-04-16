@@ -24,13 +24,15 @@ impl GameInstance {
             GameInstanceActions::Pause => self.ctx.pause(),
             GameInstanceActions::Resume => self.ctx.resume(),
             GameInstanceActions::Exit => {
-                self.destroy_window_and_render_context(event_loop, &self.ctx);
+                let _ = self.ctx.destroy_retro_ctx();
+                event_loop.exit();
                 Ok(())
             }
         };
 
         if let Err(e) = result {
-            self.destroy_window_and_render_context(event_loop, &self.ctx);
+            let _ = self.ctx.destroy_retro_ctx();
+            event_loop.exit();
             println!("Error: {e:?}");
         }
     }

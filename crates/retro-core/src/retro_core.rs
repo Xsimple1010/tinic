@@ -177,7 +177,7 @@ impl RetroCore {
         self.initialized.store(false, Ordering::SeqCst);
         core_env::delete_local_core_ctx();
 
-        Ok(())
+        self.av_info.video.graphic_api.clear()
     }
 
     pub fn connect_controller(&self, port: i16, controller: u32) -> Result<(), ErrorHandle> {

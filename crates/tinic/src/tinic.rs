@@ -8,6 +8,7 @@ use crate::{
     tinic_generics::error_handle::ErrorHandle,
 };
 use std::sync::Arc;
+use winit::event_loop::ControlFlow;
 use winit::platform::run_on_demand::EventLoopExtRunOnDemand;
 use winit::{
     event_loop::EventLoop,
@@ -195,6 +196,8 @@ impl Tinic {
             Some(event_loop) => event_loop,
             None => return TinicGameInstanceStatus::Exit(0),
         };
+
+        event_loop.set_control_flow(ControlFlow::Poll);
 
         match event_loop.run_app_on_demand(&mut game_instance) {
             Ok(()) => TinicGameInstanceStatus::Continue,

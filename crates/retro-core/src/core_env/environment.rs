@@ -50,12 +50,8 @@ pub trait RetroVideoEnvCallbacks {
         pitch: usize,
         is_hw: bool,
     ) -> Result<(), ErrorHandle>;
-    #[doc = " Called when a context has been created or when it has been reset.\n An OpenGL context is only valid after context_reset() has been called.\n\n When context_reset is called, OpenGL resources in the libretro\n implementation are guaranteed to be invalid.\n\n It is possible that context_reset is called multiple times during an\n application lifecycle.\n If context_reset is called without any notification (context_destroy),\n the OpenGL context was lost and resources should just be recreated\n without any attempt to \"free\" old resources."]
-    fn context_reset(&self) -> Result<(), ErrorHandle>;
     #[doc = " Set by frontend.\n Can return all relevant functions, including glClear on Windows."]
-    fn get_proc_address(&self, proc_name: &str) -> Result<*const (), ErrorHandle>;
-    #[doc = " A callback to be called before the context is destroyed in a\n controlled way by the frontend."]
-    fn context_destroy(&self) -> Result<(), ErrorHandle>;
+    fn get_proc_address(&self, proc_name: &str) -> *const ();
 }
 
 pub trait RetroAudioEnvCallbacks {

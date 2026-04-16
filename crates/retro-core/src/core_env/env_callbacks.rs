@@ -127,23 +127,37 @@ pub unsafe extern "C" fn video_refresh_callback(
     pitch: usize,
 ) {
     unsafe {
-        let is_hw = data == !0usize as *const c_void;
+        const HW_FLAG: *const c_void = usize::MAX as *const c_void;
+
+        let is_hw = data == HW_FLAG;
 
         let buffer = if is_hw {
             Vec::new()
         } else {
-            let size = pitch * height as usize;
+            if data.is_null() || width == 0 || height == 0 || pitch == 0 {
+                return;
+            }
+
+            let size = match pitch.checked_mul(height as usize) {
+                Some(s) => s,
+                None => return,
+            };
+
             std::slice::from_raw_parts(data as *const u8, size).to_vec()
         };
 
-        if let Some(core_ctx) = &*addr_of!(CORE_CONTEXT)
-            && let Err(e) = core_ctx
+        let core_ctx = &*addr_of!(CORE_CONTEXT);
+
+        if let Some(core_ctx) = core_ctx.as_ref() {
+            let res = core_ctx
                 .callbacks
                 .video
-                .video_refresh_callback(buffer, width, height, pitch, is_hw)
-        {
-            println!("{:?}", e);
-            let _ = core_ctx.de_init();
+                .video_refresh_callback(buffer, width, height, pitch, is_hw);
+
+            if let Err(e) = res {
+                println!("{e:?}");
+                let _ = core_ctx.de_init();
+            }
         }
     }
 }
@@ -175,24 +189,16 @@ pub unsafe extern "C" fn get_proc_address(sym: *const c_char) -> retro_proc_addr
             Some(core_ctx) => {
                 let fc_name = get_str_from_ptr(sym);
 
-                let res = core_ctx.callbacks.video.get_proc_address(&fc_name);
+                println!("get_proc:{fc_name:?}");
 
-                match res {
-                    Ok(proc_address) => {
-                        if proc_address.is_null() {
-                            return None;
-                        }
-
-                        let function: unsafe extern "C" fn() = mem::transmute(proc_address);
-
-                        Some(function)
-                    }
-                    Err(e) => {
-                        println!("{:?}", e);
-                        let _ = core_ctx.de_init();
-                        None
-                    }
+                let proc_address = core_ctx.callbacks.video.get_proc_address(&fc_name);
+                if proc_address.is_null() {
+                    return None;
                 }
+
+                let function: unsafe extern "C" fn() = mem::transmute(proc_address);
+
+                Some(function)
             }
             None => None,
         }

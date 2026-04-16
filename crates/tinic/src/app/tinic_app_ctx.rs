@@ -35,7 +35,7 @@ impl TinicGameCtx {
 
         let callbacks = RetroEnvCallbacks {
             audio: Box::new(retro_audio.get_core_cb()),
-            video: Box::new(retro_video.get_core_cb()),
+            video: Box::new(retro_video.get_core_cb()?),
             controller: Box::new(controller.get_core_cb()),
         };
 
@@ -120,7 +120,6 @@ impl TinicGameCtx {
         }
 
         self.retro_video.create_draw_context().map_err(err_handle)?;
-
         self.retro_core
             .load_game(&self.rom_path)
             .map_err(err_handle)?;
@@ -142,7 +141,7 @@ impl TinicGameCtx {
     }
 
     pub fn suspend_window(&mut self) {
-        self.retro_video.destroy_window();
+        let _ = self.retro_video.teardown_graphics();
         self.retro_audio.stop();
         self.controller.resume_thread_events();
 
@@ -150,12 +149,14 @@ impl TinicGameCtx {
             .window_state_change(WindowState::Closed);
     }
 
-    pub fn destroy_retro_ctx(&self) -> Result<(), ErrorHandle> {
+    pub fn destroy_retro_ctx(&mut self) -> Result<(), ErrorHandle> {
         if let Err(r) = self.retro_core.av_info.video.graphic_api.try_destroy_ctx() {
             println!("{r:?}");
         }
+        self.retro_video.teardown_graphics()?;
+
         self.retro_core.de_init()?;
-        self.retro_video.destroy_window();
+        println!("deinit do core");
         self.retro_audio.stop();
         self.controller.resume_thread_events();
 
@@ -184,6 +185,7 @@ impl TinicGameCtx {
             .prepare_sync(&self.retro_core.av_info)?;
         self.retro_video.prepare_to_core()?;
         self.retro_core.run()?;
+        self.retro_video.draw_new_frame()?;
         self.retro_video.sync.sync_now()?;
         Ok(())
     }

@@ -1,6 +1,7 @@
 use libretro_sys::binding_libretro::{
     retro_hw_context_reset_t, retro_hw_context_type, retro_hw_render_callback,
 };
+use std::sync::Arc;
 use std::sync::atomic::AtomicU8;
 use std::sync::{
     RwLock,
@@ -39,8 +40,8 @@ pub struct GraphicApi {
     #[doc = " Creates a debug context."]
     pub debug_context: AtomicBool,
 
-    context_reset: RwLock<Option<retro_hw_context_reset_t>>,
-    context_destroy: RwLock<Option<retro_hw_context_reset_t>>,
+    context_reset: Arc<RwLock<Option<retro_hw_context_reset_t>>>,
+    context_destroy: Arc<RwLock<Option<retro_hw_context_reset_t>>>,
 }
 
 impl Default for GraphicApi {
@@ -55,8 +56,8 @@ impl Default for GraphicApi {
             minor: AtomicU8::new(0),
             cache_context: AtomicBool::new(false),
             debug_context: AtomicBool::new(false),
-            context_reset: RwLock::new(None),
-            context_destroy: RwLock::new(None),
+            context_reset: Arc::new(RwLock::new(None)),
+            context_destroy: Arc::new(RwLock::new(None)),
         }
     }
 }
@@ -70,7 +71,7 @@ impl GraphicApi {
     }
 
     pub fn try_reset_ctx(&self) -> TinicResult<()> {
-        let context_reset_fn = *self.context_reset.read()?;
+        let context_reset_fn = self.context_reset.read()?.clone();
 
         println!(
             "try_reset_ctx: fn pointer = {:?}",
@@ -89,11 +90,12 @@ impl GraphicApi {
     }
 
     pub fn try_destroy_ctx(&self) -> TinicResult<()> {
-        let context_destroy = *self.context_destroy.read()?;
+        let context_destroy = self.context_destroy.read()?.clone();
 
         if let Some(Some(context_destroy)) = context_destroy {
             unsafe {
                 context_destroy();
+                println!("core foi notifica da remoção do contexto")
             }
         }
 
@@ -122,5 +124,31 @@ impl GraphicApi {
             .store(hw_cb.debug_context, Ordering::SeqCst);
 
         Ok(true)
+    }
+
+    pub fn clear(&self) -> TinicResult<()> {
+        println!("GraphicApi: clear iniciado");
+
+        // 🔥 INVALIDA callbacks (ESSENCIAL)
+        self.context_reset.write()?.take();
+        self.context_destroy.write()?.take();
+
+        // 🔥 limpa FBO
+        self.fbo.write()?.take();
+
+        // 🔄 reseta estado
+        *self.context_type.write()? = retro_hw_context_type::RETRO_HW_CONTEXT_OPENGL;
+
+        self.depth.store(false, Ordering::SeqCst);
+        self.stencil.store(false, Ordering::SeqCst);
+        self.bottom_left_origin.store(false, Ordering::SeqCst);
+        self.major.store(0, Ordering::SeqCst);
+        self.minor.store(0, Ordering::SeqCst);
+        self.cache_context.store(false, Ordering::SeqCst);
+        self.debug_context.store(false, Ordering::SeqCst);
+
+        println!("GraphicApi: clear finalizado");
+
+        Ok(())
     }
 }

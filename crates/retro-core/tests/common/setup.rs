@@ -33,21 +33,9 @@ impl RetroVideoEnvCallbacks for Video {
         Ok(())
     }
 
-    fn context_reset(&self) -> Result<(), ErrorHandle> {
-        println!("context_reset");
-        Ok(())
-    }
-
-    fn get_proc_address(&self, name: &str) -> Result<*const (), ErrorHandle> {
+    fn get_proc_address(&self, name: &str) -> *const () {
         println!("video api request: {:?}", name);
-
-        Ok(ptr::null())
-    }
-
-    fn context_destroy(&self) -> Result<(), ErrorHandle> {
-        println!("context_destroy");
-
-        Ok(())
+        ptr::null()
     }
 }
 

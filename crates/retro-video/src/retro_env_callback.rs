@@ -1,23 +1,20 @@
-use crate::raw_texture::RawTextureData;
-use crate::retro_window::RetroWindowContext;
+use std::sync::Arc;
+
 use retro_core::RetroVideoEnvCallbacks;
-use std::ptr::null;
-use tinic_generics::error_handle::ErrorHandle;
-use tinic_generics::types::ArcTMutex;
+use tinic_generics::{error_handle::TinicResult, types::ArcTMutex};
+
+use crate::{raw_texture::RawTextureData, retro_gl::proc_resolver::GlProcResolver};
 
 pub struct RetroVideoCb {
     texture: ArcTMutex<RawTextureData>,
-    window_ctx: ArcTMutex<Option<Box<dyn RetroWindowContext>>>,
+    proc_resolve: Arc<GlProcResolver>,
 }
 
 impl RetroVideoCb {
-    pub fn new(
-        texture: ArcTMutex<RawTextureData>,
-        window_ctx: ArcTMutex<Option<Box<dyn RetroWindowContext>>>,
-    ) -> Self {
+    pub fn new(texture: ArcTMutex<RawTextureData>, proc_resolve: Arc<GlProcResolver>) -> Self {
         Self {
             texture,
-            window_ctx,
+            proc_resolve,
         }
     }
 }
@@ -30,7 +27,7 @@ impl RetroVideoEnvCallbacks for RetroVideoCb {
         height: u32,
         pitch: usize,
         is_hw: bool,
-    ) -> Result<(), ErrorHandle> {
+    ) -> TinicResult<()> {
         let mut texture = self.texture.try_load()?;
 
         texture.data = data;
@@ -39,32 +36,10 @@ impl RetroVideoEnvCallbacks for RetroVideoCb {
         texture.pitch = pitch;
         texture.is_hw = is_hw;
 
-        if let Some(win) = &mut *self.window_ctx.try_load()? {
-            win.draw_new_frame(&texture);
-        }
-
         Ok(())
     }
 
-    fn context_reset(&self) -> Result<(), ErrorHandle> {
-        if let Some(win) = &mut *self.window_ctx.try_load()? {
-            win.init_context()?;
-        }
-        Ok(())
-    }
-
-    fn get_proc_address(&self, proc_name: &str) -> Result<*const (), ErrorHandle> {
-        if let Some(win) = &mut *self.window_ctx.try_load()? {
-            return Ok(win.get_proc_address(proc_name));
-        }
-
-        Ok(null())
-    }
-
-    fn context_destroy(&self) -> Result<(), ErrorHandle> {
-        if let Some(win) = &mut *self.window_ctx.try_load()? {
-            win.context_destroy()?;
-        }
-        Ok(())
+    fn get_proc_address(&self, proc_name: &str) -> *const () {
+        self.proc_resolve.get_proc(proc_name)
     }
 }
