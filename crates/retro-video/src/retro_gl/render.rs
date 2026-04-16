@@ -39,7 +39,7 @@ pub struct Render {
 impl Render {
     /// Chamado ANTES de load_game.
     /// Cria apenas shaders e o loader GL.
-    /// VAO, VBO, FBO e textura são criados em init_framebuffer().
+    /// VAO, VBO, FBO e textura são criados em init_frame_buffer().
     pub fn new<D: GlDisplay>(
         gl_display: D,
         texture: &Arc<TMutex<RawTextureData>>,
@@ -111,7 +111,6 @@ impl Render {
         let vao = VertexArray::new(self.gl.clone());
         let vbo = GlBuffer::new(gl::ARRAY_BUFFER, self.gl.clone());
         let fbo = FrameBuffer::new(self.gl.clone());
-        println!("fbo id: {:?}", fbo.get_id());
         let texture = Texture2D::new(av_info, self.gl.clone())?;
 
         fbo.bind();
@@ -224,7 +223,7 @@ impl Render {
 
             let texture2d = match &self._texture2d {
                 Some(tex) => tex,
-                None => return Err(ErrorHandle::new("texture2d não foi definida pelo opengl")),
+                None => return Err(ErrorHandle::new("texture2d não foi definida pelo OpenGl")),
             };
 
             let texture = &*self
@@ -263,7 +262,7 @@ impl Render {
         Ok(())
     }
 
-    pub fn deinit(&mut self, av_info: &Arc<AvInfo>) {
+    pub fn de_init(&mut self, av_info: &Arc<AvInfo>) {
         unsafe {
             // 🔥 1. limpar estado GL (evita lixo)
             self.gl.BindFramebuffer(gl::FRAMEBUFFER, 0);
@@ -272,17 +271,12 @@ impl Render {
             self.gl.BindVertexArray(0);
         }
 
-        // 🔥 2. resetar FBO do libretro (CRÍTICO)
         if let Ok(mut fbo) = av_info.video.graphic_api.fbo.write() {
             fbo.replace(0);
         }
 
-        // 🔥 3. destruir na ordem correta (dependências)
-        // textura depende do FBO → destruir depois de desbind
-
         if let Some(texture) = self._texture2d.take() {
-            texture.un_bind(); // se tiver
-            // drop acontece aqui
+            texture.un_bind();
         }
 
         if let Some(rbo) = self._rbo.take() {

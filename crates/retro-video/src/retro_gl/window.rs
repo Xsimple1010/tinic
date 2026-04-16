@@ -184,7 +184,7 @@ impl RetroWindowContext for RetroGlWindow {
         println!("remove o render");
 
         if let Some(mut renderer) = self.renderer.take() {
-            renderer.deinit(&self.av_info);
+            renderer.de_init(&self.av_info);
         }
 
         let ctx = match ctx.make_not_current() {
