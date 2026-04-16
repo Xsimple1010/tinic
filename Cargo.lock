@@ -2867,7 +2867,7 @@ dependencies = [
 
 [[package]]
 name = "retro-video"
-version = "0.1.2"
+version = "0.1.2-rc1"
 dependencies = [
  "cfg_aliases",
  "gl_generator",
@@ -3507,7 +3507,7 @@ dependencies = [
 
 [[package]]
 name = "tinic"
-version = "0.1.7"
+version = "0.1.7-rc1"
 dependencies = [
  "libretro-sys",
  "retro-audio",
@@ -3537,7 +3537,7 @@ dependencies = [
 
 [[package]]
 name = "tinic-ipc"
-version = "0.1.4"
+version = "0.1.4-rc1"
 dependencies = [
  "serde_json",
  "tinic",
