@@ -1,7 +1,7 @@
-extern crate tinic_generics;
 extern crate glutin;
 extern crate image;
 extern crate retro_core;
+extern crate tinic_generics;
 extern crate winit;
 
 mod print_scree;
@@ -11,6 +11,7 @@ mod retro_gl;
 mod retro_window;
 mod sync;
 mod video;
+mod window_ctx;
 
 pub use retro_env_callback::RetroVideoCb;
 pub use retro_window::RetroWindowMode;

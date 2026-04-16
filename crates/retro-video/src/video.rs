@@ -1,8 +1,9 @@
 use crate::raw_texture::RawTextureData;
 use crate::retro_env_callback::RetroVideoCb;
 use crate::retro_gl::proc_resolver::GlProcResolver;
-use crate::retro_window::{RetroWindowContext, RetroWindowMode};
+use crate::retro_window::RetroWindowMode;
 use crate::sync::RetroSync;
+use crate::window_ctx::WindowCtx;
 use crate::{print_scree::PrintScree, retro_gl::window::RetroGlWindow};
 use libretro_sys::binding_libretro::retro_hw_context_type::{
     RETRO_HW_CONTEXT_NONE, RETRO_HW_CONTEXT_OPENGL, RETRO_HW_CONTEXT_OPENGL_CORE,
@@ -17,72 +18,6 @@ use tinic_generics::{
     types::{ArcTMutex, TMutex},
 };
 use winit::event_loop::ActiveEventLoop;
-
-pub enum WindowCtx {
-    OpenGl(RetroGlWindow),
-}
-
-impl WindowCtx {
-    fn init_context(&mut self) -> TinicResult<()> {
-        match self {
-            WindowCtx::OpenGl(w) => w.init_context(),
-        }
-    }
-
-    fn destroy(&mut self) -> TinicResult<()> {
-        match self {
-            WindowCtx::OpenGl(w) => w.destroy(),
-        }
-    }
-
-    fn request_redraw(&self) {
-        match self {
-            WindowCtx::OpenGl(w) => w.request_redraw(),
-        }
-    }
-
-    fn draw_context_as_initialized(&self) -> bool {
-        match self {
-            WindowCtx::OpenGl(w) => w.draw_context_as_initialized(),
-        }
-    }
-
-    fn draw_new_frame(&self) -> TinicResult<()> {
-        match self {
-            WindowCtx::OpenGl(w) => w.draw_new_frame(),
-        }
-    }
-
-    fn toggle_window_model(&mut self) {
-        match self {
-            WindowCtx::OpenGl(w) => w.toggle_window_model(),
-        }
-    }
-
-    fn set_window_mode(&mut self, mode: RetroWindowMode) {
-        match self {
-            WindowCtx::OpenGl(w) => w.set_window_mode(mode),
-        }
-    }
-
-    fn resize(&mut self, width: u32, height: u32) {
-        match self {
-            WindowCtx::OpenGl(w) => w.resize(width, height),
-        }
-    }
-
-    fn prepare_for_core(&mut self) {
-        match self {
-            WindowCtx::OpenGl(w) => w.prepare_for_core(),
-        }
-    }
-
-    fn init_frame_buffer(&mut self, av_info: &Arc<AvInfo>) -> TinicResult<()> {
-        match self {
-            WindowCtx::OpenGl(w) => w.init_frame_buffer(av_info),
-        }
-    }
-}
 
 pub struct RetroVideo {
     window_ctx: Option<WindowCtx>,
