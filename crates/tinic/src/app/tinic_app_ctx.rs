@@ -1,6 +1,5 @@
 use crate::app::listener::{GameState, WindowState};
 use crate::{SaveStateInfo, TinicGameInfo, WindowListener};
-use libretro_sys::binding_libretro::retro_hw_context_type;
 use retro_audio::RetroAudio;
 use retro_controllers::{RetroController, RetroGamePad};
 use retro_core::{RetroCore, RetroCoreIns, RetroEnvCallbacks, graphic_api::GraphicApi};
@@ -46,7 +45,7 @@ impl TinicGameCtx {
             &game_info.core.into(),
             paths,
             callbacks,
-            GraphicApi::with(retro_hw_context_type::RETRO_HW_CONTEXT_OPENGL_CORE),
+            GraphicApi::with_opengl(),
         )?;
 
         let game_pads = controller.get_list()?;

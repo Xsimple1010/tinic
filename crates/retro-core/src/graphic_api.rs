@@ -63,9 +63,16 @@ impl Default for GraphicApi {
 }
 
 impl GraphicApi {
-    pub fn with(context_type: retro_hw_context_type) -> Self {
+    pub fn with_opengl_core() -> Self {
         Self {
-            context_type: RwLock::new(context_type),
+            context_type: RwLock::new(retro_hw_context_type::RETRO_HW_CONTEXT_OPENGL_CORE),
+            ..Default::default()
+        }
+    }
+
+    pub fn with_opengl() -> Self {
+        Self {
+            context_type: RwLock::new(retro_hw_context_type::RETRO_HW_CONTEXT_OPENGL),
             ..Default::default()
         }
     }
@@ -118,16 +125,11 @@ impl GraphicApi {
     }
 
     pub fn clear(&self) -> TinicResult<()> {
-        println!("GraphicApi: clear iniciado");
-
-        // 🔥 INVALIDA callbacks (ESSENCIAL)
         self.context_reset.write()?.take();
         self.context_destroy.write()?.take();
 
-        // 🔥 limpa FBO
         self.fbo.write()?.take();
 
-        // 🔄 reseta estado
         *self.context_type.write()? = retro_hw_context_type::RETRO_HW_CONTEXT_OPENGL;
 
         self.depth.store(false, Ordering::SeqCst);
@@ -137,8 +139,6 @@ impl GraphicApi {
         self.minor.store(0, Ordering::SeqCst);
         self.cache_context.store(false, Ordering::SeqCst);
         self.debug_context.store(false, Ordering::SeqCst);
-
-        println!("GraphicApi: clear finalizado");
 
         Ok(())
     }

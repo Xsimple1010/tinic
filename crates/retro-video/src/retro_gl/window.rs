@@ -171,8 +171,6 @@ impl RetroWindowContext for RetroGlWindow {
             None => return Ok(()),
         };
 
-        println!("torna ctx gl current");
-
         if let Err(e) = ctx.make_current(&surface) {
             println!("{e:?}");
         }
@@ -180,8 +178,6 @@ impl RetroWindowContext for RetroGlWindow {
         if let Err(r) = self.av_info.video.graphic_api.try_destroy_ctx() {
             println!("{r:?}");
         }
-
-        println!("remove o render");
 
         if let Some(mut renderer) = self.renderer.take() {
             renderer.de_init(&self.av_info);
@@ -200,8 +196,6 @@ impl RetroWindowContext for RetroGlWindow {
 
         // limpa resolver (evita ponteiro velho)
         self.proc_resolve.set_loader(|_| std::ptr::null());
-
-        println!("final da remoção do render");
 
         Ok(())
     }
@@ -236,7 +230,6 @@ impl RetroWindowContext for RetroGlWindow {
 
         gl_context.make_current(&gl_surface).unwrap();
 
-        // 🔥 registra resolver aqui
         let display = self.gl_config.display();
         let resolver = self.proc_resolve.clone();
 
@@ -250,8 +243,6 @@ impl RetroWindowContext for RetroGlWindow {
         self.renderer = Some(render);
         self.gl_context = Some(gl_context);
         self.gl_surface = Some(gl_surface);
-
-        println!("contexto criado");
 
         Ok(())
     }
