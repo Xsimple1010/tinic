@@ -1,6 +1,6 @@
 [package]
 name = "tinic-ipc"
-version = "0.1.3"
+version = "0.1.4-rc1"
 edition = "2024"
 license = "GPL-3"
 description = "Tinic is a runtime for Libretro cores that abstracts the native API and provides a ready-to-use foundation for cross-platform frontends. "

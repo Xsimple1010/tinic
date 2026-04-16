@@ -1,6 +1,6 @@
 [package]
 name = "retro-video"
-version = "0.1.1"
+version = "0.1.2-rc1"
 edition = "2024"
 license = "GPL-3"
 description = "retro-video"
