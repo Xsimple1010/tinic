@@ -7,11 +7,12 @@ pub enum WindowState {
     Closed,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum GameState {
-    Running,
+    #[default]
     Closed,
+    Running,
     Paused,
 }
 
