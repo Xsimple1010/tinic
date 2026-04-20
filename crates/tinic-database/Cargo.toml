@@ -9,3 +9,4 @@ repository = "https://github.com/Xsimple1010/Tinic/tree/master/crates/tinic-data
 [dependencies]
 sqlite.workspace = true
 tinic-generics.workspace = true
+tokio.workspace = true

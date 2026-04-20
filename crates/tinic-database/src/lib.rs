@@ -16,11 +16,11 @@ mod tests {
     use crate::tinic_database_connection::TinicDbConnection;
     use tinic_generics::error_handle::ErrorHandle;
 
-    #[test]
-    fn start_connection() -> Result<(), ErrorHandle> {
+    #[tokio::test]
+    async fn start_connection() -> Result<(), ErrorHandle> {
         let conn = TinicDbConnection::in_memory()?;
-        create_game_table(&conn)?;
-        insert_game_infos(&conn, &data_test::_get_data_test())?;
+        create_game_table(&conn).await?;
+        insert_game_infos(&conn, &data_test::_get_data_test()).await?;
 
         let mut crcs = data_test::_get_data_test()
             .into_iter()
@@ -28,13 +28,13 @@ mod tests {
             .collect::<Vec<_>>();
         crcs.remove(2);
 
-        let games = select_by_crc32_list(&conn, &crcs)?;
+        let games = select_by_crc32_list(&conn, &crcs).await?;
         assert_eq!(games.len(), 2);
 
-        let consoles = list_consoles(&conn)?;
+        let consoles = list_consoles(&conn).await?;
         assert_eq!(consoles.len(), 2);
 
-        let games = list_games_with_rom_path_paginated(&conn, 1, 1)?;
+        let games = list_games_with_rom_path_paginated(&conn, 1, 1).await?;
         assert_eq!(games.len(), 1);
         assert!(games[0].last_played_at.is_some(), "last_played_at is None");
         assert_eq!(
@@ -48,20 +48,20 @@ mod tests {
         let rom_name = "Final Fantasy VII (Disc 1).bin";
 
         let change_lines =
-            update_game_paths(&conn, None, rom_name, Some(rom_path), Some(core_path))?;
+            update_game_paths(&conn, None, rom_name, Some(rom_path), Some(core_path)).await?;
         assert_eq!(change_lines, 1);
 
         let crc = 0x12345678;
         let change_lines =
-            update_game_paths(&conn, Some(crc), rom_name, Some(rom_path), Some(core_path))?;
+            update_game_paths(&conn, Some(crc), rom_name, Some(rom_path), Some(core_path)).await?;
         assert_eq!(change_lines, 1);
 
         let game_crc = games[0].crc32.unwrap();
-        let change_lines = update_played_at(&conn, game_crc)?;
+        let change_lines = update_played_at(&conn, game_crc).await?;
         assert_eq!(change_lines, 1);
 
         // o game com update_played_at mais recenter deve ser o primeiro
-        let games = list_games_with_rom_path_paginated(&conn, 1, 1)?;
+        let games = list_games_with_rom_path_paginated(&conn, 1, 1).await?;
         assert_eq!(games.len(), 1);
         assert!(games[0].last_played_at.is_some(), "last_played_at is None");
         assert!(
@@ -69,7 +69,7 @@ mod tests {
             "last_played_at is not greater than 0"
         );
 
-        delete_all_games(&conn)?;
+        delete_all_games(&conn).await?;
         Ok(())
     }
 }

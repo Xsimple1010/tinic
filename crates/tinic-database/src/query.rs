@@ -7,14 +7,14 @@ use crate::sqlite_query::{
 };
 use crate::sqlite_query_tools::{read_game_info, read_opt_u32};
 use crate::tinic_database_connection::TinicDbConnection;
-use tinic_generics::error_handle::ErrorHandle;
 use sqlite::Value;
+use tinic_generics::error_handle::ErrorHandle;
 
-pub fn create_game_table(connection: &TinicDbConnection) -> Result<(), ErrorHandle> {
-    connection.try_execute(get_create_game_table_query())
+pub async fn create_game_table(connection: &TinicDbConnection) -> Result<(), ErrorHandle> {
+    connection.try_execute(get_create_game_table_query()).await
 }
 
-pub fn insert_game_infos(
+pub async fn insert_game_infos(
     conn: &TinicDbConnection,
     games: &[GameInfoInDb],
 ) -> Result<(), ErrorHandle> {
@@ -23,7 +23,8 @@ pub fn insert_game_infos(
     }
 
     conn.with_statement(get_insert_game_query(), |stmt, conn| {
-        conn.execute("BEGIN TRANSACTION;")?;
+        conn.execute("SAVEPOINT insert_games;")
+            .map_err(|e| ErrorHandle::new(&e.to_string()))?;
 
         for game in games {
             stmt.bind((1, opt_str(&game.name)))?;
@@ -54,17 +55,18 @@ pub fn insert_game_infos(
         }
 
         Ok(())
-    })?;
+    })
+    .await?;
 
-    conn.execute("COMMIT;")?;
+    conn.execute("COMMIT;").await?;
     Ok(())
 }
 
-pub fn delete_all_games(conn: &TinicDbConnection) -> Result<(), ErrorHandle> {
-    conn.execute(delete_all_games_query())
+pub async fn delete_all_games(conn: &TinicDbConnection) -> Result<(), ErrorHandle> {
+    conn.execute(delete_all_games_query()).await
 }
 
-pub fn select_by_crc32_list(
+pub async fn select_by_crc32_list(
     conn: &TinicDbConnection,
     crc_list: &[u32],
 ) -> Result<Vec<GameInfoInDb>, ErrorHandle> {
@@ -80,25 +82,27 @@ pub fn select_by_crc32_list(
 
     let sql = format!("SELECT * FROM game_info WHERE crc32 IN ({})", placeholders);
 
-    let stmt = conn.with_statement(&sql, |stmt, _conn| {
-        // bind dos crc32
-        for (i, crc) in crc_list.iter().enumerate() {
-            stmt.bind((i + 1, Value::Integer(*crc as i64)))?;
-        }
+    let stmt = conn
+        .with_statement(&sql, |stmt, _conn| {
+            // bind dos crc32
+            for (i, crc) in crc_list.iter().enumerate() {
+                stmt.bind((i + 1, Value::Integer(*crc as i64)))?;
+            }
 
-        let mut results = Vec::new();
+            let mut results = Vec::new();
 
-        while let sqlite::State::Row = stmt.next()? {
-            results.push(read_game_info(&stmt)?);
-        }
+            while let sqlite::State::Row = stmt.next()? {
+                results.push(read_game_info(&stmt)?);
+            }
 
-        Ok(results)
-    })?;
+            Ok(results)
+        })
+        .await?;
 
     Ok(stmt)
 }
 
-pub fn list_consoles(conn: &TinicDbConnection) -> Result<Vec<String>, ErrorHandle> {
+pub async fn list_consoles(conn: &TinicDbConnection) -> Result<Vec<String>, ErrorHandle> {
     conn.with_statement(get_select_console_names_query(), |stmt, _conn| {
         let mut consoles = Vec::new();
 
@@ -109,9 +113,10 @@ pub fn list_consoles(conn: &TinicDbConnection) -> Result<Vec<String>, ErrorHandl
 
         Ok(consoles)
     })
+    .await
 }
 
-pub fn list_games_with_rom_path_paginated(
+pub async fn list_games_with_rom_path_paginated(
     db: &TinicDbConnection,
     page: u32,
     page_size: u32,
@@ -138,9 +143,10 @@ pub fn list_games_with_rom_path_paginated(
 
         Ok(games)
     })
+    .await
 }
 
-pub fn update_game_paths(
+pub async fn update_game_paths(
     db: &TinicDbConnection,
     crc32: Option<u32>,
     rom_name: &str,
@@ -149,23 +155,25 @@ pub fn update_game_paths(
 ) -> Result<usize, ErrorHandle> {
     // 1️⃣ Tenta atualizar pelo CRC32 (se existir)
     if let Some(crc) = crc32 {
-        let updated = db.with_statement(
-            "
+        let updated = db
+            .with_statement(
+                "
             UPDATE game_info
             SET
                 rom_path  = ?,
                 core_path = ?
             WHERE crc32 = ?
             ",
-            |stmt, conn| {
-                stmt.bind((1, rom_path))?;
-                stmt.bind((2, core_path))?;
-                stmt.bind((3, opt_u32(Some(crc))))?;
+                |stmt, conn| {
+                    stmt.bind((1, rom_path))?;
+                    stmt.bind((2, core_path))?;
+                    stmt.bind((3, opt_u32(Some(crc))))?;
 
-                stmt.next()?;
-                Ok(conn.change_count())
-            },
-        )?;
+                    stmt.next()?;
+                    Ok(conn.change_count())
+                },
+            )
+            .await?;
 
         if updated > 0 {
             return Ok(updated);
@@ -190,9 +198,10 @@ pub fn update_game_paths(
             Ok(conn.change_count())
         },
     )
+    .await
 }
 
-pub fn update_played_at(db: &TinicDbConnection, game_crc: u32) -> Result<usize, ErrorHandle> {
+pub async fn update_played_at(db: &TinicDbConnection, game_crc: u32) -> Result<usize, ErrorHandle> {
     db.with_statement(
         "
         UPDATE game_info
@@ -208,4 +217,5 @@ pub fn update_played_at(db: &TinicDbConnection, game_crc: u32) -> Result<usize, 
             Ok(conn.change_count())
         },
     )
+    .await
 }

@@ -1,12 +1,11 @@
-use tinic_generics::error_handle::ErrorHandle;
-use tinic_generics::types::{ArcTMutex, TMutex};
 use sqlite::Connection;
-use std::path::PathBuf;
-use std::sync::MutexGuard;
+use std::{path::PathBuf, sync::Arc};
+use tinic_generics::error_handle::ErrorHandle;
+use tokio::sync::{Mutex, MutexGuard};
 
 #[derive(Clone)]
 pub struct TinicDbConnection {
-    conn: ArcTMutex<Connection>,
+    conn: Arc<Mutex<Connection>>,
 }
 
 impl TinicDbConnection {
@@ -14,7 +13,7 @@ impl TinicDbConnection {
         let connection = sqlite::open(path.join("games.sqlite"))?;
 
         Ok(Self {
-            conn: TMutex::new(connection),
+            conn: Arc::new(Mutex::new(connection)),
         })
     }
 
@@ -22,30 +21,24 @@ impl TinicDbConnection {
         let connection = sqlite::open(":memory:")?;
 
         Ok(Self {
-            conn: TMutex::new(connection),
+            conn: Arc::new(Mutex::new(connection)),
         })
     }
 
-    pub fn try_execute<T: AsRef<str>>(&self, statement: T) -> Result<(), ErrorHandle> {
-        self.conn.try_load()?.execute(statement)?;
+    pub async fn try_execute<T: AsRef<str>>(&self, statement: T) -> Result<(), ErrorHandle> {
+        self.conn.lock().await.execute(statement)?;
         Ok(())
     }
 
-    pub fn execute<T: AsRef<str>>(&self, statement: T) -> Result<(), ErrorHandle> {
-        Ok(self
-            .conn
-            .load_or_spawn_err("Não foi possivel liberar o mutex do sqlite::connection")?
-            .execute(statement)?)
+    pub async fn execute<T: AsRef<str>>(&self, statement: T) -> Result<(), ErrorHandle> {
+        Ok(self.conn.lock().await.execute(statement)?)
     }
 
-    pub fn with_statement<F, R>(&self, query: &str, mut callback: F) -> Result<R, ErrorHandle>
+    pub async fn with_statement<F, R>(&self, query: &str, mut callback: F) -> Result<R, ErrorHandle>
     where
         F: FnMut(&mut sqlite::Statement, &MutexGuard<Connection>) -> Result<R, ErrorHandle>,
     {
-        let conn = self
-            .conn
-            .load_or_spawn_err("Não foi possivel liberar o mutex do sqlite::connection")?;
-
+        let conn = self.conn.lock().await;
         let mut stmt = conn.prepare(query)?;
 
         callback(&mut stmt, &conn)
