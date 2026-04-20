@@ -4,10 +4,10 @@ use crate::rdb_manager::game_model::GameInfo;
 use crate::rdb_manager::rdb_parser::read_rdbs_from_dir;
 use crate::tools::extract_files::ExtractProgress;
 use crate::{DownloadProgress, GameIdentifier};
-use tinic_generics::error_handle::ErrorHandle;
-use tinic_generics::retro_paths::RetroPaths;
 use std::path::PathBuf;
 use std::sync::Arc;
+use tinic_generics::error_handle::ErrorHandle;
+use tinic_generics::retro_paths::RetroPaths;
 
 #[derive(Debug)]
 pub enum RdbEventType {
@@ -23,6 +23,7 @@ pub enum RdbEventType {
     },
 }
 
+#[derive(Clone)]
 pub struct RdbManager {
     pub retro_path: RetroPaths,
     pub event_listener: Arc<dyn TinicSuperEventListener>,

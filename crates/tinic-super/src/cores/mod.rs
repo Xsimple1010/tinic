@@ -3,14 +3,15 @@ use crate::cores::download::download_core;
 use crate::cores::installed::{has_installed, install_core};
 use crate::event::TinicSuperEventListener;
 use crate::tools::extract_files::ExtractProgress;
-use tinic_generics::error_handle::ErrorHandle;
-use tinic_generics::retro_paths::RetroPaths;
 use std::path::PathBuf;
 use std::sync::Arc;
+use tinic_generics::error_handle::ErrorHandle;
+use tinic_generics::retro_paths::RetroPaths;
 
 pub mod download;
 pub mod installed;
 
+#[derive(Clone)]
 pub struct CoreHelper {
     pub(crate) event_listener: Arc<dyn TinicSuperEventListener>,
     pub(crate) retro_paths: RetroPaths,

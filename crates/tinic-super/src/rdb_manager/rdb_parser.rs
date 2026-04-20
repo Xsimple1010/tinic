@@ -1,8 +1,6 @@
 use crate::event::TinicSuperEventListener;
 use crate::rdb_manager::game_model::GameInfo;
 use crate::rdb_manager::helper::RdbEventType;
-use tinic_generics::constants::RDB_HEADER_SIZE;
-use tinic_generics::error_handle::ErrorHandle;
 use rayon::iter::{ParallelBridge, ParallelIterator};
 use rmp_serde::Deserializer;
 use serde::Deserialize;
@@ -10,6 +8,8 @@ use std::io::Cursor;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use tinic_generics::constants::RDB_HEADER_SIZE;
+use tinic_generics::error_handle::ErrorHandle;
 
 pub fn read_rdbs_from_dir(
     rdb_dir: &PathBuf,
@@ -93,8 +93,10 @@ pub fn read_rdb_blocking(
                 // println!("Syntax error: {}", e);
                 break;
             }
-
-            Err(e) => return Err(ErrorHandle::new(&e.to_string())),
+            Err(e) => {
+                println!("{e:?}");
+                break;
+            }
         }
     }
 
