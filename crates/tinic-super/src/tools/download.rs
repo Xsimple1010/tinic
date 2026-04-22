@@ -25,22 +25,21 @@ where
         fs::create_dir_all(&dest).await?;
     }
 
+    dest.push(file_name);
+    let need_update = !dest.exists();
+    if !need_update && !force_update {
+        event_listener(DownloadProgress::Completed {
+            name: file_name.to_string(),
+        });
+        return Ok(dest);
+    }
+
     let response = reqwest::get(url)
         .await
         .map_err(|e| Error::new(ErrorKind::Other, e))?;
 
     if response.status() != reqwest::StatusCode::OK {
         return Err(Error::new(ErrorKind::Other, "invalid status code"));
-    }
-
-    dest.push(file_name);
-    let need_update = !dest.exists();
-
-    if !need_update && !force_update {
-        event_listener(DownloadProgress::Completed {
-            name: file_name.to_string(),
-        });
-        return Ok(dest);
     }
 
     let mut file = File::create(&dest).await?;
