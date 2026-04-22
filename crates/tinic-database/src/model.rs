@@ -2,7 +2,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use sqlite::Value;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct GameInfoInDb {
     pub name: Option<String>,
     pub description: Option<String>,
