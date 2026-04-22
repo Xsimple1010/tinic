@@ -40,7 +40,7 @@ pub fn get_create_game_table_query() -> &'static str {
 
 pub(crate) fn get_insert_game_query() -> &'static str {
     "
-        INSERT INTO game_info (
+        INSERT OR REPLACE INTO game_info (
             name,
             description,
             genre,
