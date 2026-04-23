@@ -1,7 +1,6 @@
-use std::sync::atomic::Ordering;
-
 use crate::common::setup::get_core_test;
-use libretro_sys::binding_libretro::{retro_hw_context_type, retro_pixel_format};
+use retro_core::{graphic_api::HwContextType, pixel::PixelFormat};
+use std::sync::atomic::Ordering;
 use tinic_generics::{
     error_handle::TinicResult,
     test_workdir::{get_test_rom_path, remove_test_work_dir_path},
@@ -84,21 +83,15 @@ fn test_core_initial_state_and_after_load() -> TinicResult<()> {
         .av_info
         .video
         .pixel_format
-        .load_or(retro_pixel_format::RETRO_PIXEL_FORMAT_UNKNOWN)
+        .load_or(PixelFormat::Unknown)
         .clone();
 
-    assert_eq!(
-        pixel_format,
-        retro_pixel_format::RETRO_PIXEL_FORMAT_XRGB8888
-    );
+    assert_eq!(pixel_format, PixelFormat::Xrgb8888);
 
     // ---------- GRAPHIC API (software rendering esperado) ----------
     let gfx = &core.av_info.video.graphic_api;
 
-    assert_eq!(
-        *gfx.context_type.read()?,
-        retro_hw_context_type::RETRO_HW_CONTEXT_OPENGL
-    );
+    assert_eq!(*gfx.context_type.read()?, HwContextType::OpenGl);
     assert!(gfx.fbo.read()?.is_none());
     assert!(!gfx.depth.load(Ordering::SeqCst));
     assert!(!gfx.stencil.load(Ordering::SeqCst));

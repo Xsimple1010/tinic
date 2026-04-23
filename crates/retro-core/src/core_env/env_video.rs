@@ -9,6 +9,7 @@ use crate::{
         RETRO_ENVIRONMENT_GET_AUDIO_VIDEO_ENABLE, RETRO_ENVIRONMENT_SET_GEOMETRY,
         RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, retro_game_geometry, retro_pixel_format,
     },
+    pixel::PixelFormat,
     tools::validation::InputValidator,
 };
 use std::ffi::{c_uint, c_void};
@@ -46,10 +47,10 @@ pub unsafe fn env_cb_av(
 
             unsafe {
                 core_ctx.av_info.video.pixel_format.store_or_else(
-                    *(data as *const retro_pixel_format),
+                    (*(data as *const retro_pixel_format)).into(),
                     |p| {
                         let mut _pixel = *p.into_inner();
-                        _pixel = retro_pixel_format::RETRO_PIXEL_FORMAT_UNKNOWN;
+                        _pixel = PixelFormat::Unknown;
                     },
                 );
             }
@@ -72,8 +73,14 @@ pub unsafe fn env_cb_av(
             println!("RETRO_ENVIRONMENT_GET_PREFERRED_HW_RENDER");
 
             unsafe {
-                *(data as *mut retro_hw_context_type) =
-                    *core_ctx.av_info.video.graphic_api.context_type.read()?;
+                *(data as *mut retro_hw_context_type) = core_ctx
+                    .av_info
+                    .video
+                    .graphic_api
+                    .context_type
+                    .read()?
+                    .clone()
+                    .into();
             }
 
             Ok(true)

@@ -1,15 +1,16 @@
-extern crate tinic_generics;
 extern crate libretro_sys;
+extern crate tinic_generics;
 extern crate uuid;
 
 mod core_env;
 mod managers;
+mod retro_core;
 mod retro_perf;
 mod tools;
 
 pub mod av_info;
 pub mod graphic_api;
-mod retro_core;
+pub mod pixel;
 pub mod system;
 
 pub use core_env::{

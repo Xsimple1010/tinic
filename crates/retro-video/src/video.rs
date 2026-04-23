@@ -5,10 +5,8 @@ use crate::retro_window::RetroWindowMode;
 use crate::sync::RetroSync;
 use crate::window_ctx::WindowCtx;
 use crate::{print_scree::PrintScree, retro_gl::window::RetroGlWindow};
-use libretro_sys::binding_libretro::retro_hw_context_type::{
-    RETRO_HW_CONTEXT_NONE, RETRO_HW_CONTEXT_OPENGL, RETRO_HW_CONTEXT_OPENGL_CORE,
-};
 use retro_core::av_info::AvInfo;
+use retro_core::graphic_api::HwContextType;
 use std::{
     path::{Path, PathBuf},
     sync::Arc,
@@ -44,7 +42,7 @@ impl RetroVideo {
         event_loop: &ActiveEventLoop,
     ) -> TinicResult<()> {
         match *av_info.video.graphic_api.context_type.read()? {
-            RETRO_HW_CONTEXT_OPENGL_CORE | RETRO_HW_CONTEXT_OPENGL | RETRO_HW_CONTEXT_NONE => {
+            HwContextType::OpenGl | HwContextType::OpenGlCore => {
                 self.window_ctx
                     .replace(WindowCtx::OpenGl(RetroGlWindow::new(
                         event_loop,

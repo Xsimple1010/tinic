@@ -14,10 +14,9 @@ use glutin::{
     surface::{GlSurface, Surface, WindowSurface},
 };
 use glutin_winit::{DisplayBuilder, GlWindow};
-use libretro_sys::binding_libretro::retro_hw_context_type;
 use raw_window_handle::HasWindowHandle;
 use retro_core::av_info::AvInfo;
-use retro_core::graphic_api::GraphicApi;
+use retro_core::graphic_api::{GraphicApi, HwContextType};
 use std::ffi::CString;
 use std::num::NonZeroU32;
 use std::sync::Arc;
@@ -49,17 +48,15 @@ fn create_gl_context(
     let debug = api.debug_context.load(Ordering::SeqCst);
 
     let (primary, fallback) = match *api.context_type.read()? {
-        retro_hw_context_type::RETRO_HW_CONTEXT_OPENGL
-        | retro_hw_context_type::RETRO_HW_CONTEXT_OPENGL_CORE
-        | retro_hw_context_type::RETRO_HW_CONTEXT_NONE => (
+        HwContextType::OpenGl | HwContextType::OpenGlCore | HwContextType::None => (
             ContextApi::OpenGl(Some(Version::new(3, 3))),
             ContextApi::OpenGl(Some(Version::new(2, 1))),
         ),
-        retro_hw_context_type::RETRO_HW_CONTEXT_OPENGLES2 => (
+        HwContextType::OpenGlEs2 => (
             ContextApi::Gles(Some(Version::new(2, 0))),
             ContextApi::Gles(Some(Version::new(2, 0))),
         ),
-        retro_hw_context_type::RETRO_HW_CONTEXT_OPENGLES3 => {
+        HwContextType::OpenGlEs3 => {
             let major = api.major.load(Ordering::SeqCst);
             let minor = api.minor.load(Ordering::SeqCst);
             let version = if major >= 3 {

@@ -2874,7 +2874,6 @@ dependencies = [
  "glutin",
  "glutin-winit",
  "image",
- "libretro-sys",
  "raw-window-handle",
  "retro-core",
  "tinic-generics",

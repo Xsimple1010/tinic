@@ -11,7 +11,7 @@ repository = "https://github.com/Xsimple1010/Tinic/tree/master/crates/retro-vide
 [dependencies]
 retro-core.workspace = true
 image.workspace = true
-libretro-sys.workspace = true
+# libretro-sys.workspace = true
 tinic-generics.workspace = true
 winit.workspace = true
 glutin.workspace = true

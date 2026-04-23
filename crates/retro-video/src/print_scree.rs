@@ -1,7 +1,6 @@
 use crate::raw_texture::RawTextureData;
 use image::{ImageBuffer, RgbImage};
-use libretro_sys::binding_libretro::retro_pixel_format;
-use retro_core::av_info::AvInfo;
+use retro_core::{av_info::AvInfo, pixel::PixelFormat};
 use std::{
     path::{Path, PathBuf},
     sync::Arc,
@@ -25,16 +24,10 @@ impl PrintScree {
             .pixel_format
             .load_or_spawn_err("Pixel está inacessivel")?
         {
-            retro_pixel_format::RETRO_PIXEL_FORMAT_XRGB8888 => {
-                Self::_from_xrgb8888(raw_texture, out_path)
-            }
-            retro_pixel_format::RETRO_PIXEL_FORMAT_0RGB1555 => {
-                Self::_from_0rgb1555(raw_texture, out_path)
-            }
-            retro_pixel_format::RETRO_PIXEL_FORMAT_RGB565 => {
-                Self::_from_rgb565(raw_texture, out_path)
-            }
-            _ => Err(ErrorHandle::new("Formato de pixel desconhecido")),
+            PixelFormat::Xrgb8888 => Self::_from_xrgb8888(raw_texture, out_path),
+            PixelFormat::Rgb1555 => Self::_from_0rgb1555(raw_texture, out_path),
+            PixelFormat::Rgb565 => Self::_from_rgb565(raw_texture, out_path),
+            PixelFormat::Unknown => Err(ErrorHandle::new("Formato de pixel desconhecido")),
         }
     }
 

@@ -1,9 +1,7 @@
-use crate::graphic_api::GraphicApi;
 use crate::tools::validation::InputValidator;
+use crate::{graphic_api::GraphicApi, pixel::PixelFormat};
 use libretro_sys::binding_libretro::{
-    LibretroRaw, retro_game_geometry,
-    retro_pixel_format::{self, RETRO_PIXEL_FORMAT_UNKNOWN},
-    retro_system_av_info, retro_system_timing,
+    LibretroRaw, retro_game_geometry, retro_system_av_info, retro_system_timing,
 };
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Arc, RwLock};
@@ -43,7 +41,7 @@ pub struct Geometry {
 #[derive(Debug)]
 pub struct Video {
     pub can_dupe: RwLock<bool>,
-    pub pixel_format: ArcTMutex<retro_pixel_format>,
+    pub pixel_format: ArcTMutex<PixelFormat>,
     pub geometry: Geometry,
     pub graphic_api: GraphicApi,
 }
@@ -52,7 +50,7 @@ impl Default for Video {
     fn default() -> Self {
         Video {
             can_dupe: RwLock::new(false),
-            pixel_format: TMutex::new(RETRO_PIXEL_FORMAT_UNKNOWN),
+            pixel_format: TMutex::new(PixelFormat::Unknown),
             geometry: Geometry::default(),
             graphic_api: GraphicApi::default(),
         }
