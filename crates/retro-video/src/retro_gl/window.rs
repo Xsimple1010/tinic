@@ -36,7 +36,7 @@ pub struct RetroGlWindow {
     window: Window,
     av_info: Arc<AvInfo>,
     texture: Arc<TMutex<RawTextureData>>,
-    pub proc_resolve: Arc<GlProcResolver>, // 👈 NOVO
+    pub proc_resolve: Arc<GlProcResolver>,
 }
 
 fn create_gl_context(

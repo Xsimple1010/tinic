@@ -9,7 +9,7 @@ use crate::infos::read_file::read_info_file;
 use crate::tools::extract_files::ExtractProgress;
 use std::path::PathBuf;
 use std::sync::Arc;
-use tinic_generics::error_handle::ErrorHandle;
+use tinic_generics::error_handle::{ErrorHandle, TinicResult};
 use tinic_generics::retro_paths::RetroPaths;
 
 #[derive(Clone)]
@@ -25,7 +25,7 @@ pub enum InfoEventType {
 }
 
 impl InfoHelper {
-    pub async fn download(&self, force_update: bool) -> Result<(), ErrorHandle> {
+    pub async fn download(&self, force_update: bool) -> TinicResult<()> {
         download_info(
             &self.retro_paths,
             force_update,
@@ -35,7 +35,7 @@ impl InfoHelper {
         .await
     }
 
-    pub async fn download_blocking(&self, force_update: bool) -> Result<(), ErrorHandle> {
+    pub async fn download_blocking(&self, force_update: bool) -> TinicResult<()> {
         download_info(
             &self.retro_paths,
             force_update,

@@ -1,15 +1,15 @@
 use crate::tools::ffi_tools::get_str_from_ptr;
-use tinic_generics::{
-    constants::{
-        MAX_CORE_CONTROLLER_INFO_TYPES, MAX_CORE_SUBSYSTEM_INFO, MAX_CORE_SUBSYSTEM_ROM_INFO,
-    },
-    error_handle::ErrorHandle,
-};
 use libretro_sys::binding_libretro::{
     LibretroRaw, retro_controller_description, retro_controller_info, retro_subsystem_info,
     retro_subsystem_memory_info, retro_subsystem_rom_info, retro_system_info,
 };
 use std::sync::{Arc, RwLock, atomic::AtomicU8};
+use tinic_generics::{
+    constants::{
+        MAX_CORE_CONTROLLER_INFO_TYPES, MAX_CORE_SUBSYSTEM_INFO, MAX_CORE_SUBSYSTEM_ROM_INFO,
+    },
+    error_handle::TinicResult,
+};
 
 #[derive(Default, Debug, Clone)]
 pub struct SysInfo {
@@ -90,7 +90,7 @@ impl System {
     pub fn get_subsystem(
         &self,
         raw_subsystem: [retro_subsystem_info; MAX_CORE_SUBSYSTEM_INFO],
-    ) -> Result<(), ErrorHandle> {
+    ) -> TinicResult<()> {
         self.subsystem.write()?.clear();
 
         for raw_sys in raw_subsystem {
@@ -137,7 +137,7 @@ impl System {
     pub fn get_ports(
         &self,
         raw_ctr_infos: [retro_controller_info; MAX_CORE_CONTROLLER_INFO_TYPES],
-    ) -> Result<(), ErrorHandle> {
+    ) -> TinicResult<()> {
         self.ports.write()?.clear();
 
         for raw_ctr_info in raw_ctr_infos {

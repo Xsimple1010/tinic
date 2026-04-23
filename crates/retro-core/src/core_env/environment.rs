@@ -33,7 +33,7 @@ use std::{
     sync::atomic::Ordering,
 };
 use std::{os::raw::c_void, ptr::addr_of};
-use tinic_generics::error_handle::ErrorHandle;
+use tinic_generics::error_handle::{ErrorHandle, TinicResult};
 
 pub struct RetroEnvCallbacks {
     pub video: Box<dyn RetroVideoEnvCallbacks>,
@@ -49,7 +49,7 @@ pub trait RetroVideoEnvCallbacks {
         height: u32,
         pitch: usize,
         is_hw: bool,
-    ) -> Result<(), ErrorHandle>;
+    ) -> TinicResult<()>;
     #[doc = " Set by frontend.\n Can return all relevant functions, including glClear on Windows."]
     fn get_proc_address(&self, proc_name: &str) -> *const ();
 }
@@ -60,7 +60,7 @@ pub trait RetroAudioEnvCallbacks {
         left: i16,
         right: i16,
         retro_av: Arc<AvInfo>,
-    ) -> Result<(), ErrorHandle>;
+    ) -> TinicResult<()>;
     fn audio_sample_batch_callback(
         &self,
         data: *const i16,
@@ -70,7 +70,7 @@ pub trait RetroAudioEnvCallbacks {
 }
 
 pub trait RetroControllerEnvCallbacks {
-    fn input_poll_callback(&self) -> Result<(), ErrorHandle>;
+    fn input_poll_callback(&self) -> TinicResult<()>;
     fn input_state_callback(
         &self,
         port: i16,

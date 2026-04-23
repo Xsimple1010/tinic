@@ -2,18 +2,18 @@ use crate::event::TinicSuperEventListener;
 use crate::infos::helper::InfoEventType;
 use crate::tools::download::download_file;
 use crate::tools::extract_files::{ExtractProgress, extract_zip_file};
-use tinic_generics::constants::CORE_INFOS_URL;
-use tinic_generics::error_handle::ErrorHandle;
-use tinic_generics::retro_paths::RetroPaths;
 use std::path::PathBuf;
 use std::sync::Arc;
+use tinic_generics::constants::CORE_INFOS_URL;
+use tinic_generics::error_handle::TinicResult;
+use tinic_generics::retro_paths::RetroPaths;
 
 pub async fn download_info(
     retro_paths: &RetroPaths,
     force_update: bool,
     blocking: bool,
     event_listener: Arc<dyn TinicSuperEventListener>,
-) -> Result<(), ErrorHandle> {
+) -> TinicResult<()> {
     let temp_dir = PathBuf::from(&retro_paths.temps.to_string());
 
     let path = download_file(

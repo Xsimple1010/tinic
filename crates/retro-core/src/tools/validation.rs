@@ -1,8 +1,8 @@
-use tinic_generics::constants::INVALID_CONTROLLER_PORT;
-use tinic_generics::error_handle::ErrorHandle;
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 use std::path::{Path, PathBuf};
+use tinic_generics::constants::INVALID_CONTROLLER_PORT;
+use tinic_generics::error_handle::{ErrorHandle, TinicResult};
 
 /// Input validation utilities for retro_core
 pub struct InputValidator;
@@ -89,7 +89,7 @@ impl InputValidator {
     }
 
     /// Check for path traversal attacks
-    fn check_path_traversal(path: &Path) -> Result<(), ErrorHandle> {
+    fn check_path_traversal(path: &Path) -> TinicResult<()> {
         let path_str = path.to_string_lossy();
 
         // Check for common path traversal patterns
@@ -108,10 +108,7 @@ impl InputValidator {
     }
 
     /// Validate ROM file extension
-    pub fn validate_rom_extension(
-        path: &Path,
-        valid_extensions: &String,
-    ) -> Result<(), ErrorHandle> {
+    pub fn validate_rom_extension(path: &Path, valid_extensions: &String) -> TinicResult<()> {
         let extension = path
             .extension()
             .ok_or_else(|| ErrorHandle::new("File has no extension"))?
@@ -215,7 +212,7 @@ impl InputValidator {
     }
 
     /// Validate memory buffer size
-    pub fn validate_buffer_size(size: usize, max_size: usize) -> Result<(), ErrorHandle> {
+    pub fn validate_buffer_size(size: usize, max_size: usize) -> TinicResult<()> {
         if size == 0 {
             return Err(ErrorHandle::new("Buffer size cannot be zero"));
         }
@@ -231,7 +228,7 @@ impl InputValidator {
     }
 
     /// Validate raw pointer is not null
-    pub fn validate_non_null_ptr<T>(ptr: *const T, name: &str) -> Result<(), ErrorHandle> {
+    pub fn validate_non_null_ptr<T>(ptr: *const T, name: &str) -> TinicResult<()> {
         if ptr.is_null() {
             return Err(ErrorHandle::new(&format!("{} pointer is null", name)));
         }
@@ -239,7 +236,7 @@ impl InputValidator {
     }
 
     /// Validate raw mutable pointer is not null
-    pub fn validate_non_null_mut_ptr<T>(ptr: *mut T, name: &str) -> Result<(), ErrorHandle> {
+    pub fn validate_non_null_mut_ptr<T>(ptr: *mut T, name: &str) -> TinicResult<()> {
         if ptr.is_null() {
             return Err(ErrorHandle::new(&format!("{} pointer is null", name)));
         }
@@ -254,7 +251,7 @@ impl InputValidator {
     }
 
     /// Validate audio sample rate
-    pub fn validate_sample_rate(sample_rate: u32) -> Result<(), ErrorHandle> {
+    pub fn validate_sample_rate(sample_rate: u32) -> TinicResult<()> {
         match sample_rate {
             8000..=192000 => Ok(()),
             _ => Err(ErrorHandle::new(&format!(
@@ -265,7 +262,7 @@ impl InputValidator {
     }
 
     /// Validate save state slot number
-    pub fn validate_save_slot(slot: usize) -> Result<(), ErrorHandle> {
+    pub fn validate_save_slot(slot: usize) -> TinicResult<()> {
         if slot > 99 {
             return Err(ErrorHandle::new("Save slot cannot exceed 99"));
         }
@@ -276,9 +273,9 @@ impl InputValidator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tinic_generics::test_workdir::get_test_rom_path;
     use std::fs::File;
     use tempfile::TempDir;
+    use tinic_generics::test_workdir::get_test_rom_path;
 
     #[test]
     fn test_validate_file_path_success() {

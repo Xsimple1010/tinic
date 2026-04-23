@@ -1,6 +1,6 @@
 use crate::infos::model::CoreInfo;
-use tinic_generics::error_handle::ErrorHandle;
 use std::{ffi::OsStr, path::PathBuf};
+use tinic_generics::error_handle::{ErrorHandle, TinicResult};
 
 fn create_and_join_core_name(file_name: Option<&OsStr>) -> Result<String, ErrorHandle> {
     let file_name = match file_name {
@@ -90,7 +90,7 @@ fn set_info_value(line: &mut str, info: &mut CoreInfo) {
     }
 }
 
-fn set_file_name_info(file_path: &PathBuf, info: &mut CoreInfo) -> Result<(), ErrorHandle> {
+fn set_file_name_info(file_path: &PathBuf, info: &mut CoreInfo) -> TinicResult<()> {
     info.file_name = file_path
         .file_name()
         .ok_or(ErrorHandle::new("File has no file name"))?

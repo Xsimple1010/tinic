@@ -3,20 +3,20 @@ use crate::{
     audios::{AudioMetadata, BufferCons, BufferProd},
 };
 use cpal::{
-    traits::{DeviceTrait, HostTrait, StreamTrait}, Device,
-    Stream,
-};
-use tinic_generics::{
-    error_handle::ErrorHandle,
-    types::{ArcTMutex, TMutex},
+    Device, Stream,
+    traits::{DeviceTrait, HostTrait, StreamTrait},
 };
 use retro_core::av_info::AvInfo;
 use ringbuf::{
+    SharedRb,
     storage::Heap,
     traits::{Consumer, Observer, Producer, Split},
-    SharedRb,
 };
 use std::{result::Result, sync::Arc, time::Duration};
+use tinic_generics::{
+    error_handle::{ErrorHandle, TinicResult},
+    types::{ArcTMutex, TMutex},
+};
 
 #[derive(Clone)]
 pub struct AudioDriver {
@@ -35,7 +35,7 @@ impl AudioDriver {
         })
     }
 
-    pub fn init(&self, av: &Arc<AvInfo>) -> Result<(), ErrorHandle> {
+    pub fn init(&self, av: &Arc<AvInfo>) -> TinicResult<()> {
         let (device, front_sample_rate, front_channels) = AudioDriver::get_device_configs()?;
         let back_sample_rate =
             *av.timing.sample_rate.read().map_err(|e| {
@@ -66,7 +66,7 @@ impl AudioDriver {
         self.set_up_stream(device, front_cons)
     }
 
-    pub fn play(&self) -> Result<(), ErrorHandle> {
+    pub fn play(&self) -> TinicResult<()> {
         match &mut *self
             .stream
             .load_or_spawn_err("Não foi possível pausar o audio")?
@@ -76,7 +76,7 @@ impl AudioDriver {
         }
     }
 
-    pub fn pause(&self) -> Result<(), ErrorHandle> {
+    pub fn pause(&self) -> TinicResult<()> {
         match &mut *self.stream.load_or(None) {
             Some(stream) => stream.pause().map_err(|e| ErrorHandle::new(&e.to_string())),
             None => Err(ErrorHandle::new("Stream not initialized")),
@@ -89,7 +89,7 @@ impl AudioDriver {
         self.front_prod_buffer.store(None);
     }
 
-    pub fn add_sample(&self, samples: &[i16], metadata: AudioMetadata) -> Result<(), ErrorHandle> {
+    pub fn add_sample(&self, samples: &[i16], metadata: AudioMetadata) -> TinicResult<()> {
         if let Some(front_buffer_prod) = &mut *self
             .front_prod_buffer
             .load_or_spawn_err("Front buffer not initialized")?
@@ -102,7 +102,7 @@ impl AudioDriver {
         Ok(())
     }
 
-    fn set_up_stream(&self, device: Device, mut cons: BufferCons) -> Result<(), ErrorHandle> {
+    fn set_up_stream(&self, device: Device, mut cons: BufferCons) -> TinicResult<()> {
         let config = device.default_output_config().unwrap();
 
         let config = &config.into();

@@ -13,7 +13,7 @@ use std::ffi::{c_uint, c_void};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, RwLock};
-use tinic_generics::error_handle::ErrorHandle;
+use tinic_generics::error_handle::{ErrorHandle, TinicResult};
 use tinic_generics::retro_paths::RetroPaths;
 
 pub type RetroCoreIns = Arc<RetroCore>;
@@ -91,7 +91,7 @@ impl RetroCore {
         Ok(core)
     }
 
-    fn init(&self) -> Result<(), ErrorHandle> {
+    fn init(&self) -> TinicResult<()> {
         if self.game_loaded.load(Ordering::SeqCst) || self.initialized.load(Ordering::SeqCst) {
             return Err(ErrorHandle::new(
                 "Para inicializar um novo núcleo e necessário descarrega o núcleo atual",
@@ -131,7 +131,7 @@ impl RetroCore {
         }
     }
 
-    pub fn reset(&self) -> Result<(), ErrorHandle> {
+    pub fn reset(&self) -> TinicResult<()> {
         if !self.initialized.load(Ordering::SeqCst) {
             return Err(ErrorHandle::new("O núcleo nao foi inicializado"));
         }
@@ -147,7 +147,7 @@ impl RetroCore {
         Ok(())
     }
 
-    pub fn run(&self) -> Result<(), ErrorHandle> {
+    pub fn run(&self) -> TinicResult<()> {
         if !self.initialized.load(Ordering::SeqCst) {
             return Err(ErrorHandle::new("O núcleo nao foi inicializado"));
         }
@@ -161,7 +161,7 @@ impl RetroCore {
         Ok(())
     }
 
-    pub fn de_init(&self) -> Result<(), ErrorHandle> {
+    pub fn de_init(&self) -> TinicResult<()> {
         //Se uma *rom* estive carrega ela deve ser descarregada primeiro
         if let Err(e) = self.unload_game() {
             self.initialized.store(false, Ordering::SeqCst);
@@ -180,7 +180,7 @@ impl RetroCore {
         self.av_info.video.graphic_api.clear()
     }
 
-    pub fn connect_controller(&self, port: i16, controller: u32) -> Result<(), ErrorHandle> {
+    pub fn connect_controller(&self, port: i16, controller: u32) -> TinicResult<()> {
         if !self.initialized.load(Ordering::SeqCst) {
             return Err(ErrorHandle::new(
                 "Nao é possível conectar um controle pois nenhum núcleo foi inicializado",
@@ -197,7 +197,7 @@ impl RetroCore {
         Ok(())
     }
 
-    pub fn unload_game(&self) -> Result<(), ErrorHandle> {
+    pub fn unload_game(&self) -> TinicResult<()> {
         if !self.game_loaded.load(Ordering::SeqCst) {
             return Ok(());
         }
@@ -243,7 +243,7 @@ impl RetroCore {
         })
     }
 
-    pub fn load_state(&self, slot: usize) -> Result<(), ErrorHandle> {
+    pub fn load_state(&self, slot: usize) -> TinicResult<()> {
         if !self.game_loaded.load(Ordering::SeqCst) {
             return Err(ErrorHandle::new("Uma rom precisa ser carregada primeiro"));
         }

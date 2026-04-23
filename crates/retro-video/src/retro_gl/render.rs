@@ -264,7 +264,6 @@ impl Render {
 
     pub fn de_init(&mut self, av_info: &Arc<AvInfo>) {
         unsafe {
-            // 🔥 1. limpar estado GL (evita lixo)
             self.gl.BindFramebuffer(gl::FRAMEBUFFER, 0);
             self.gl.UseProgram(0);
             self.gl.BindBuffer(gl::ARRAY_BUFFER, 0);
@@ -295,10 +294,8 @@ impl Render {
             vao.un_bind();
         }
 
-        // 🔥 shader program por último (usa recursos acima)
         self._program.un_use_program();
 
-        // 🔥 4. forçar flush (ajuda drivers chatos)
         unsafe {
             self.gl.Finish();
         }

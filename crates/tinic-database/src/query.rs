@@ -8,16 +8,16 @@ use crate::sqlite_query::{
 use crate::sqlite_query_tools::{read_game_info, read_opt_u32};
 use crate::tinic_database_connection::TinicDbConnection;
 use sqlite::Value;
-use tinic_generics::error_handle::ErrorHandle;
+use tinic_generics::error_handle::{ErrorHandle, TinicResult};
 
-pub async fn create_game_table(connection: &TinicDbConnection) -> Result<(), ErrorHandle> {
+pub async fn create_game_table(connection: &TinicDbConnection) -> TinicResult<()> {
     connection.try_execute(get_create_game_table_query()).await
 }
 
 pub async fn insert_game_infos(
     conn: &TinicDbConnection,
     games: &[GameInfoInDb],
-) -> Result<(), ErrorHandle> {
+) -> TinicResult<()> {
     if games.is_empty() {
         return Ok(());
     }
@@ -62,7 +62,7 @@ pub async fn insert_game_infos(
     Ok(())
 }
 
-pub async fn delete_all_games(conn: &TinicDbConnection) -> Result<(), ErrorHandle> {
+pub async fn delete_all_games(conn: &TinicDbConnection) -> TinicResult<()> {
     conn.execute(delete_all_games_query()).await
 }
 

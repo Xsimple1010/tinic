@@ -4,9 +4,9 @@ use crate::io::stdout_writer::StdoutWriter;
 use std::sync::atomic::Ordering;
 use std::thread::sleep;
 use std::time::Duration;
-use tinic::{ErrorHandle, Tinic};
+use tinic::{Tinic, TinicResult};
 
-pub fn game_loop(app_state: AppStateHandle, mut tinic: Tinic) -> Result<(), ErrorHandle> {
+pub fn game_loop(app_state: AppStateHandle, mut tinic: Tinic) -> TinicResult<()> {
     loop {
         sleep(Duration::from_millis(THREAD_SLEEP_TIME_IN_MILLISECONDS));
 

@@ -1,22 +1,22 @@
 use crate::gamepad::retro_gamepad::RetroGamePad;
 use crate::gamepad::update_gamepad_state_handle::get_available_port;
 use crate::keyboard::Keyboard;
-use tinic_generics::{
-    constants::DEFAULT_MAX_PORT,
-    error_handle::ErrorHandle,
-    types::{ArcTMutex, TMutex},
-};
 use gilrs::Gilrs;
 use libretro_sys::binding_libretro;
 use libretro_sys::binding_libretro::{
-    retro_rumble_effect, RETRO_DEVICE_ID_JOYPAD_MASK, RETRO_DEVICE_JOYPAD,
+    RETRO_DEVICE_ID_JOYPAD_MASK, RETRO_DEVICE_JOYPAD, retro_rumble_effect,
 };
 use std::{
     fmt::Debug,
     sync::{
-        atomic::{AtomicUsize, Ordering},
         Arc,
+        atomic::{AtomicUsize, Ordering},
     },
+};
+use tinic_generics::{
+    constants::DEFAULT_MAX_PORT,
+    error_handle::{ErrorHandle, TinicResult},
+    types::{ArcTMutex, TMutex},
 };
 use winit::keyboard::PhysicalKey;
 
@@ -105,7 +105,7 @@ impl DevicesManager {
         Ok(manage)
     }
 
-    fn pre_load_gamepads(&self) -> Result<(), ErrorHandle> {
+    fn pre_load_gamepads(&self) -> TinicResult<()> {
         for (id, gamepad) in self.gilrs.try_load()?.gamepads() {
             let port = get_available_port(&self.max_ports, &self.connected_gamepads);
             let gamepad =
@@ -120,7 +120,7 @@ impl DevicesManager {
         Ok(())
     }
 
-    pub fn update_state(&self) -> Result<(), ErrorHandle> {
+    pub fn update_state(&self) -> TinicResult<()> {
         RetroGamePad::update(
             &mut *self.gilrs.try_load()?,
             &self.connected_gamepads,

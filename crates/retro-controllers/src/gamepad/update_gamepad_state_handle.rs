@@ -1,12 +1,15 @@
+use crate::RetroGamePad;
 use crate::devices_manager::{DeviceKeyMap, DeviceStateListener};
 use crate::gamepad::retro_gamepad_key_map::GamePadKeyMap;
-use crate::RetroGamePad;
-use tinic_generics::{constants::INVALID_CONTROLLER_PORT, error_handle::ErrorHandle, types::ArcTMutex};
 use gilrs::{Button, GamepadId, Gilrs};
 use libretro_sys::binding_libretro::RETRO_DEVICE_JOYPAD;
 use std::sync::{
-    atomic::{AtomicUsize, Ordering},
     Arc,
+    atomic::{AtomicUsize, Ordering},
+};
+use tinic_generics::error_handle::TinicResult;
+use tinic_generics::{
+    constants::INVALID_CONTROLLER_PORT, error_handle::ErrorHandle, types::ArcTMutex,
 };
 
 //Se o valor retornado for −1(INVALID_CONTROLLER_PORT)! significa que todas as
@@ -55,7 +58,7 @@ pub fn connect_handle(
     connected_gamepads: &ArcTMutex<Vec<RetroGamePad>>,
     max_ports: &Arc<AtomicUsize>,
     listener: &DeviceStateListener,
-) -> Result<(), ErrorHandle> {
+) -> TinicResult<()> {
     if let Some(gamepad) = gilrs.connected_gamepad(gamepad_id) {
         let port = get_available_port(max_ports, connected_gamepads);
 
@@ -79,7 +82,7 @@ pub fn disconnect_handle(
     id: GamepadId,
     connected_gamepads: &ArcTMutex<Vec<RetroGamePad>>,
     listener: &DeviceStateListener,
-) -> Result<(), ErrorHandle> {
+) -> TinicResult<()> {
     if let Some(gamepad) = remove(id, connected_gamepads)? {
         listener.try_load()?.disconnected(gamepad);
     }
@@ -92,7 +95,7 @@ pub fn pressed_button_handle(
     gamepad_id: GamepadId,
     connected_gamepads: &ArcTMutex<Vec<RetroGamePad>>,
     listener: &DeviceStateListener,
-) -> Result<(), ErrorHandle> {
+) -> TinicResult<()> {
     for gamepad in &mut *connected_gamepads.load_or(Vec::new()) {
         if gamepad.inner_id != gamepad_id {
             continue;

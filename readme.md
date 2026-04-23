@@ -52,7 +52,7 @@ Currently, there are **two ways** to use Tinic:
 ## 🦀 LibTinic (Rust)
 
 ``` rust
-fn main() -> Result<(), ErrorHandle> {
+fn main() -> TinicResult<()> {
     let mut tinic = Tinic::new()?;
     
     // Before continuing, it is necessary to register event listeners (required)
@@ -85,7 +85,7 @@ instance. It is not necessary to have a window open to do this. You can
 create **game_dispatchers** once and reuse it for all calls.
 
 ``` rust
-fn main() -> Result<(), ErrorHandle> {
+fn main() -> TinicResult<()> {
     let mut tinic = create_tinic()?;
     let dispatch = tinic.get_game_dispatchers();
     

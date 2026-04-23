@@ -1,10 +1,9 @@
-use tinic_generics::test_workdir::remove_test_work_dir_path;
-use tinic::ErrorHandle;
+use tinic_generics::{error_handle::TinicResult, test_workdir::remove_test_work_dir_path};
 mod common;
 
 use crate::common::setup::{TINIC_EXAMPLE_DIR, create_game_instance, create_tinic};
 
-fn main() -> Result<(), ErrorHandle> {
+fn main() -> TinicResult<()> {
     let mut tinic = create_tinic()?;
 
     // run_app_on_demand blocks the current thread, but unlike run & pop_event,

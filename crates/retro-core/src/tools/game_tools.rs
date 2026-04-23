@@ -1,7 +1,5 @@
 use crate::system::SysInfo;
 use crate::tools::validation::InputValidator;
-use tinic_generics::constants::SAVE_EXTENSION_FILE;
-use tinic_generics::error_handle::ErrorHandle;
 use libretro_sys::binding_libretro::{LibretroRaw, retro_game_info};
 use std::fs;
 use std::sync::Arc;
@@ -13,6 +11,8 @@ use std::{
     path::{Path, PathBuf},
     ptr::null,
 };
+use tinic_generics::constants::SAVE_EXTENSION_FILE;
+use tinic_generics::error_handle::{ErrorHandle, TinicResult};
 
 /// Maximum ROM size in MB (500MB should be enough for most cases)
 const MAX_ROM_SIZE_MB: u64 = 500;
@@ -326,7 +326,7 @@ impl RomTools {
     }
 
     /// Safely load save state with validation
-    pub fn load_save_state<CA>(save_info: SaveInfo, send_to_core: CA) -> Result<(), ErrorHandle>
+    pub fn load_save_state<CA>(save_info: SaveInfo, send_to_core: CA) -> TinicResult<()>
     where
         CA: FnOnce(&mut Vec<u8>, usize) -> bool,
     {
@@ -405,7 +405,7 @@ impl RomTools {
     }
 
     /// Validate ROM file integrity (basic checks)
-    pub fn validate_rom_integrity(path: &Path) -> Result<(), ErrorHandle> {
+    pub fn validate_rom_integrity(path: &Path) -> TinicResult<()> {
         let file = File::open(path).map_err(|e| {
             ErrorHandle::new(&format!("Cannot open ROM file for integrity check: {}", e))
         })?;

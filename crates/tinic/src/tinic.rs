@@ -8,6 +8,7 @@ use crate::{
     tinic_generics::error_handle::ErrorHandle,
 };
 use std::sync::Arc;
+use tinic_generics::error_handle::TinicResult;
 use winit::event_loop::ControlFlow;
 use winit::platform::run_on_demand::EventLoopExtRunOnDemand;
 use winit::{
@@ -61,7 +62,7 @@ impl Tinic {
     pub fn set_controller_listener(
         &mut self,
         listener: Box<dyn DeviceListener>,
-    ) -> Result<(), ErrorHandle> {
+    ) -> TinicResult<()> {
         let devices_listener = DeviceHandle {
             extern_listener: listener,
             game_dispatchers: self.game_dispatchers.clone(),
@@ -145,7 +146,7 @@ impl Tinic {
         * **Warning**: You **cannot create another** **GameInstance** after calling this function.
         If you attempt to create a new `GameInstance`, it will return an error.
     "]
-    pub fn run(&mut self, mut game_instance: GameInstance) -> Result<(), ErrorHandle> {
+    pub fn run(&mut self, mut game_instance: GameInstance) -> TinicResult<()> {
         let event_loop = match self.event_loop.take() {
             Some(event_loop) => event_loop,
             None => return Ok(()),

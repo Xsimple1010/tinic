@@ -5,16 +5,16 @@ use crate::{
     },
     tools::mutex_tools::get_string_rwlock_from_ptr,
 };
-use tinic_generics::constants::{CORE_OPTION_EXTENSION_FILE, MAX_CORE_OPTIONS};
-use tinic_generics::error_handle::ErrorHandle;
-use std::sync::atomic::{AtomicBool, AtomicU16, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicU16, Ordering};
 use std::{
     fs::File,
     io::{Read, Write},
     path::PathBuf,
     sync::{Mutex, RwLock},
 };
+use tinic_generics::constants::{CORE_OPTION_EXTENSION_FILE, MAX_CORE_OPTIONS};
+use tinic_generics::error_handle::{ErrorHandle, TinicResult};
 
 #[derive(Default, Debug)]
 pub struct CoreValue {
@@ -65,7 +65,7 @@ impl OptionManager {
         }
     }
 
-    pub fn update_opt(&self, opt_key: &str, new_value_selected: &str) -> Result<(), ErrorHandle> {
+    pub fn update_opt(&self, opt_key: &str, new_value_selected: &str) -> TinicResult<()> {
         self.change_value_selected(opt_key, new_value_selected)?;
         self.write_all_options_in_file()?;
 
@@ -96,7 +96,7 @@ impl OptionManager {
         Ok(None)
     }
 
-    pub fn change_visibility(&self, key: &String, visibility: bool) -> Result<(), ErrorHandle> {
+    pub fn change_visibility(&self, key: &String, visibility: bool) -> TinicResult<()> {
         for core_opt in &mut *self.opts.lock()? {
             if !core_opt.key.to_string().eq(key) {
                 continue;
@@ -116,7 +116,7 @@ impl OptionManager {
         Ok(())
     }
 
-    fn write_all_options_in_file(&self) -> Result<(), ErrorHandle> {
+    fn write_all_options_in_file(&self) -> TinicResult<()> {
         let file_path = self.file_path.read()?.clone();
         let mut file = File::create(file_path.clone())?;
 
@@ -132,11 +132,7 @@ impl OptionManager {
         Ok(())
     }
 
-    fn change_value_selected(
-        &self,
-        opt_key: &str,
-        new_value_selected: &str,
-    ) -> Result<(), ErrorHandle> {
+    fn change_value_selected(&self, opt_key: &str, new_value_selected: &str) -> TinicResult<()> {
         for core_opt in &*self.opts.lock()? {
             if !core_opt.key.clone().to_string().eq(&opt_key) {
                 continue;
@@ -161,7 +157,7 @@ impl OptionManager {
         Ok(())
     }
 
-    fn load_all_option_in_file(&self) -> Result<(), ErrorHandle> {
+    fn load_all_option_in_file(&self) -> TinicResult<()> {
         let file_path = self.file_path.read()?.clone();
 
         let mut file = File::open(file_path)?;
@@ -193,7 +189,7 @@ impl OptionManager {
         Ok(())
     }
 
-    pub fn try_reload_pref_option(&self) -> Result<(), ErrorHandle> {
+    pub fn try_reload_pref_option(&self) -> TinicResult<()> {
         let file_path = self.file_path.read()?;
 
         //se o arquivo ainda não existe apenas
@@ -212,7 +208,7 @@ impl OptionManager {
     fn get_v2_intl_category(
         &self,
         categories: *mut retro_core_option_v2_category,
-    ) -> Result<(), ErrorHandle> {
+    ) -> TinicResult<()> {
         // Create a read-only slice over the C array instead of copying into a Rust array.
         // Iterate until we hit a null key sentinel.
         unsafe {
@@ -242,7 +238,7 @@ impl OptionManager {
     fn get_v2_intl_definitions(
         &self,
         definitions: *mut retro_core_option_v2_definition,
-    ) -> Result<(), ErrorHandle> {
+    ) -> TinicResult<()> {
         // Create a read-only slice over the C array instead of copying into a Rust array.
         unsafe {
             let slice = std::slice::from_raw_parts(
@@ -297,7 +293,7 @@ impl OptionManager {
     pub fn convert_option_v2_intl(
         &self,
         option_intl_v2: &mut retro_core_options_v2_intl,
-    ) -> Result<(), ErrorHandle> {
+    ) -> TinicResult<()> {
         if option_intl_v2.local.is_null() {
             let us = unsafe {
                 option_intl_v2

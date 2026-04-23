@@ -1,20 +1,20 @@
 use crate::audios::{AudioMetadata, BufferCons, BufferProd};
-use tinic_generics::{
-    error_handle::ErrorHandle,
-    types::{ArcTMutex, TMutex},
-};
 use ringbuf::{
+    SharedRb,
     storage::Heap,
     traits::{Consumer, Observer, Producer, Split},
-    SharedRb,
 };
 use rubato::{FastFixedOut, PolynomialDegree, Resampler};
 use std::sync::{
-    atomic::{AtomicBool, Ordering},
     Arc,
+    atomic::{AtomicBool, Ordering},
 };
 use std::thread::{self, sleep};
 use std::time::Duration;
+use tinic_generics::{
+    error_handle::TinicResult,
+    types::{ArcTMutex, TMutex},
+};
 
 #[derive(Clone)]
 pub struct AudioResample {
@@ -71,7 +71,7 @@ impl AudioResample {
         .expect("Failed to create FastFixedOut")
     }
 
-    pub fn add_sample(&self, data: &[i16], metadata: AudioMetadata) -> Result<(), ErrorHandle> {
+    pub fn add_sample(&self, data: &[i16], metadata: AudioMetadata) -> TinicResult<()> {
         let mut res = self.back_buffer_prod.load_or_spawn_err(
             "Não foi possível adicionar amostras de audio ao buffer de entrada",
         )?;

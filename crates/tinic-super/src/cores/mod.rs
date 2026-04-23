@@ -5,7 +5,7 @@ use crate::event::TinicSuperEventListener;
 use crate::tools::extract_files::ExtractProgress;
 use std::path::PathBuf;
 use std::sync::Arc;
-use tinic_generics::error_handle::ErrorHandle;
+use tinic_generics::error_handle::{ErrorHandle, TinicResult};
 use tinic_generics::retro_paths::RetroPaths;
 
 pub mod download;
@@ -24,7 +24,7 @@ pub enum CoreEventType {
 }
 
 impl CoreHelper {
-    pub async fn download(&self, force_update: bool) -> Result<(), ErrorHandle> {
+    pub async fn download(&self, force_update: bool) -> TinicResult<()> {
         download_core(
             &self.retro_paths,
             force_update,
@@ -34,7 +34,7 @@ impl CoreHelper {
         .await
     }
 
-    pub async fn download_blocking(&self, force_update: bool) -> Result<(), ErrorHandle> {
+    pub async fn download_blocking(&self, force_update: bool) -> TinicResult<()> {
         download_core(
             &self.retro_paths,
             force_update,

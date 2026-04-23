@@ -1,5 +1,5 @@
-use tinic_generics::error_handle::ErrorHandle;
 use std::env;
+use tinic_generics::error_handle::{ErrorHandle, TinicResult};
 
 pub struct RetroArgs {
     pub core: Option<String>,
@@ -7,7 +7,7 @@ pub struct RetroArgs {
 }
 
 impl RetroArgs {
-    pub fn new() -> Result<Self, ErrorHandle> {
+    pub fn new() -> TinicResult<Self> {
         let args = env::args().collect();
 
         let core = get_value(&args, "--core=").ok();
@@ -33,7 +33,7 @@ fn get_key_and_value(arg: &str) -> (String, String) {
     (key, value)
 }
 
-pub fn get_value(args: &Vec<String>, key: &str) -> Result<String, ErrorHandle> {
+pub fn get_value(args: &Vec<String>, key: &str) -> TinicResult<String> {
     for arg in args {
         if arg.contains(key) {
             let (key, value) = get_key_and_value(arg);
@@ -54,7 +54,7 @@ pub fn get_value(args: &Vec<String>, key: &str) -> Result<String, ErrorHandle> {
 }
 
 #[test]
-fn teste_get_values() -> Result<(), ErrorHandle> {
+fn teste_get_values() -> TinicResult<()> {
     let mut args: Vec<String> = Vec::new();
 
     args.push("--core=test.c".to_string());

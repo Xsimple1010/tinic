@@ -6,7 +6,7 @@ use std::{
     path::{Path, PathBuf},
     sync::Arc,
 };
-use tinic_generics::error_handle::ErrorHandle;
+use tinic_generics::error_handle::{ErrorHandle, TinicResult};
 
 pub struct PrintScree;
 
@@ -15,8 +15,7 @@ impl PrintScree {
         raw_texture: &RawTextureData,
         av_info: &Arc<AvInfo>,
         out_path: &mut PathBuf,
-    ) -> Result<(), ErrorHandle> {
-        // 🔴 importante: não salvar frame HW
+    ) -> TinicResult<()> {
         if raw_texture.is_hw {
             return Err(ErrorHandle::new("Frame HW não pode ser salvo como imagem"));
         }
@@ -39,10 +38,7 @@ impl PrintScree {
         }
     }
 
-    fn _from_xrgb8888(
-        raw_texture: &RawTextureData,
-        out_path: &mut PathBuf,
-    ) -> Result<(), ErrorHandle> {
+    fn _from_xrgb8888(raw_texture: &RawTextureData, out_path: &mut PathBuf) -> TinicResult<()> {
         let width = raw_texture.width as usize;
         let height = raw_texture.height as usize;
         let pitch = raw_texture.pitch;
@@ -67,10 +63,7 @@ impl PrintScree {
         Self::save_image(raw_texture, img_buffer, out_path)
     }
 
-    fn _from_0rgb1555(
-        raw_texture: &RawTextureData,
-        out_path: &mut PathBuf,
-    ) -> Result<(), ErrorHandle> {
+    fn _from_0rgb1555(raw_texture: &RawTextureData, out_path: &mut PathBuf) -> TinicResult<()> {
         let width = raw_texture.width as usize;
         let height = raw_texture.height as usize;
         let pitch = raw_texture.pitch;
@@ -101,10 +94,7 @@ impl PrintScree {
         Self::save_image(raw_texture, img_buffer, out_path)
     }
 
-    fn _from_rgb565(
-        raw_texture: &RawTextureData,
-        out_path: &mut PathBuf,
-    ) -> Result<(), ErrorHandle> {
+    fn _from_rgb565(raw_texture: &RawTextureData, out_path: &mut PathBuf) -> TinicResult<()> {
         let width = raw_texture.width as usize;
         let height = raw_texture.height as usize;
         let pitch = raw_texture.pitch;
@@ -139,7 +129,7 @@ impl PrintScree {
         raw_texture: &RawTextureData,
         buffer: Vec<u8>,
         out_path: &PathBuf,
-    ) -> Result<(), ErrorHandle> {
+    ) -> TinicResult<()> {
         let img: RgbImage = ImageBuffer::from_raw(raw_texture.width, raw_texture.height, buffer)
             .ok_or_else(|| ErrorHandle::new("Falha ao criar ImageBuffer"))?;
 

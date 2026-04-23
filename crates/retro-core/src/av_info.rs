@@ -1,14 +1,14 @@
 use crate::graphic_api::GraphicApi;
 use crate::tools::validation::InputValidator;
-use tinic_generics::error_handle::ErrorHandle;
-use tinic_generics::types::{ArcTMutex, TMutex};
 use libretro_sys::binding_libretro::{
-    retro_game_geometry, retro_pixel_format::{self, RETRO_PIXEL_FORMAT_UNKNOWN},
-    retro_system_av_info,
-    retro_system_timing, LibretroRaw,
+    LibretroRaw, retro_game_geometry,
+    retro_pixel_format::{self, RETRO_PIXEL_FORMAT_UNKNOWN},
+    retro_system_av_info, retro_system_timing,
 };
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Arc, RwLock};
+use tinic_generics::error_handle::{ErrorHandle, TinicResult};
+use tinic_generics::types::{ArcTMutex, TMutex};
 
 #[derive(Default, Debug)]
 pub struct Timing {
@@ -76,10 +76,7 @@ impl AvInfo {
         }
     }
 
-    pub fn try_set_new_geometry(
-        &self,
-        raw_geometry: &retro_game_geometry,
-    ) -> Result<(), ErrorHandle> {
+    pub fn try_set_new_geometry(&self, raw_geometry: &retro_game_geometry) -> TinicResult<()> {
         let geometry = &self.video.geometry;
 
         match geometry.aspect_ratio.write() {
@@ -109,10 +106,7 @@ impl AvInfo {
         Ok(())
     }
 
-    fn _set_timing(
-        &self,
-        raw_system_timing: *const retro_system_timing,
-    ) -> Result<(), ErrorHandle> {
+    fn _set_timing(&self, raw_system_timing: *const retro_system_timing) -> TinicResult<()> {
         InputValidator::validate_non_null_ptr(raw_system_timing, "raw_system_timing")?;
 
         let timing = unsafe { *raw_system_timing };
@@ -124,7 +118,7 @@ impl AvInfo {
         Ok(())
     }
 
-    pub fn update_av_info(&self, core_raw: &Arc<LibretroRaw>) -> Result<(), ErrorHandle> {
+    pub fn update_av_info(&self, core_raw: &Arc<LibretroRaw>) -> TinicResult<()> {
         let mut raw_av_info = retro_system_av_info {
             geometry: retro_game_geometry {
                 aspect_ratio: 0.0,

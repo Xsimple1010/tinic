@@ -1,17 +1,17 @@
 use crate::event::TinicSuperEventListener;
 use crate::tools::download::download_file;
-use tinic_generics::constants::cores_url;
-use tinic_generics::error_handle::ErrorHandle;
-use tinic_generics::retro_paths::RetroPaths;
 use std::path::PathBuf;
 use std::sync::Arc;
+use tinic_generics::constants::cores_url;
+use tinic_generics::error_handle::TinicResult;
+use tinic_generics::retro_paths::RetroPaths;
 
 pub async fn download_core(
     retro_paths: &RetroPaths,
     force_update: bool,
     blocking: bool,
     event_listener: Arc<dyn TinicSuperEventListener>,
-) -> Result<(), ErrorHandle> {
+) -> TinicResult<()> {
     let temp_dir = PathBuf::from(&retro_paths.temps.to_string());
     let url = cores_url()?;
 

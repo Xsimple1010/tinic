@@ -6,7 +6,7 @@ use crate::tools::extract_files::ExtractProgress;
 use crate::{DownloadProgress, GameIdentifier};
 use std::path::PathBuf;
 use std::sync::Arc;
-use tinic_generics::error_handle::ErrorHandle;
+use tinic_generics::error_handle::{ErrorHandle, TinicResult};
 use tinic_generics::retro_paths::RetroPaths;
 
 #[derive(Debug)]
@@ -36,7 +36,7 @@ pub struct RDBDatabase {
 }
 
 impl RdbManager {
-    pub fn read_rdbs(&self) -> Result<(), ErrorHandle> {
+    pub fn read_rdbs(&self) -> TinicResult<()> {
         read_rdbs_from_dir(
             &self.retro_path.databases.to_string().into(),
             self.event_listener.clone(),
@@ -50,7 +50,7 @@ impl RdbManager {
         GameIdentifier::from_dir(dir).await
     }
 
-    pub async fn download(&self, force_update: bool) -> Result<(), ErrorHandle> {
+    pub async fn download(&self, force_update: bool) -> TinicResult<()> {
         download_rdb(
             self.retro_path.clone(),
             force_update,

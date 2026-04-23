@@ -7,6 +7,8 @@ pub mod tinic_database_connection;
 
 #[cfg(test)]
 mod tests {
+    use tinic_generics::error_handle::TinicResult;
+
     use crate::data_test;
     use crate::query::{
         create_game_table, delete_all_games, insert_game_infos, list_consoles,
@@ -14,10 +16,9 @@ mod tests {
         update_played_at,
     };
     use crate::tinic_database_connection::TinicDbConnection;
-    use tinic_generics::error_handle::ErrorHandle;
 
     #[tokio::test]
-    async fn start_connection() -> Result<(), ErrorHandle> {
+    async fn start_connection() -> TinicResult<()> {
         let conn = TinicDbConnection::in_memory()?;
         create_game_table(&conn).await?;
         insert_game_infos(&conn, &data_test::_get_data_test()).await?;

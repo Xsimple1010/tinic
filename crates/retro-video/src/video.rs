@@ -42,7 +42,7 @@ impl RetroVideo {
         &mut self,
         av_info: &Arc<AvInfo>,
         event_loop: &ActiveEventLoop,
-    ) -> Result<(), ErrorHandle> {
+    ) -> TinicResult<()> {
         match *av_info.video.graphic_api.context_type.read()? {
             RETRO_HW_CONTEXT_OPENGL_CORE | RETRO_HW_CONTEXT_OPENGL | RETRO_HW_CONTEXT_NONE => {
                 self.window_ctx
@@ -63,7 +63,7 @@ impl RetroVideo {
         Ok(())
     }
 
-    pub fn create_draw_context(&mut self) -> Result<(), ErrorHandle> {
+    pub fn create_draw_context(&mut self) -> TinicResult<()> {
         let ctx = self.window_ctx.as_mut().ok_or_else(|| {
             ErrorHandle::new("[create_draw_context]: window context not initialized")
         })?;
@@ -92,7 +92,7 @@ impl RetroVideo {
         Ok(())
     }
 
-    pub fn request_redraw(&self) -> Result<(), ErrorHandle> {
+    pub fn request_redraw(&self) -> TinicResult<()> {
         let ctx = self
             .window_ctx
             .as_ref()
@@ -102,7 +102,7 @@ impl RetroVideo {
         Ok(())
     }
 
-    pub fn draw_new_frame(&self) -> Result<(), ErrorHandle> {
+    pub fn draw_new_frame(&self) -> TinicResult<()> {
         let ctx = self
             .window_ctx
             .as_ref()
@@ -112,7 +112,7 @@ impl RetroVideo {
             .map_err(|e| ErrorHandle::new(&format!("[draw_new_frame]: {e:?}")))
     }
 
-    pub fn print_screen(&self, out_path: &Path, av_info: &Arc<AvInfo>) -> Result<(), ErrorHandle> {
+    pub fn print_screen(&self, out_path: &Path, av_info: &Arc<AvInfo>) -> TinicResult<()> {
         PrintScree::take(
             &*self.texture.try_load()?,
             av_info,
@@ -120,7 +120,7 @@ impl RetroVideo {
         )
     }
 
-    pub fn toggle_window_mode(&mut self) -> Result<(), ErrorHandle> {
+    pub fn toggle_window_mode(&mut self) -> TinicResult<()> {
         let ctx = self.window_ctx.as_mut().ok_or_else(|| {
             ErrorHandle::new("[toggle_window_mode]: window context not initialized")
         })?;
@@ -129,7 +129,7 @@ impl RetroVideo {
         Ok(())
     }
 
-    pub fn set_window_mode(&mut self, mode: RetroWindowMode) -> Result<(), ErrorHandle> {
+    pub fn set_window_mode(&mut self, mode: RetroWindowMode) -> TinicResult<()> {
         let ctx = self
             .window_ctx
             .as_mut()
@@ -139,7 +139,7 @@ impl RetroVideo {
         Ok(())
     }
 
-    pub fn resize_window(&mut self, width: u32, height: u32) -> Result<(), ErrorHandle> {
+    pub fn resize_window(&mut self, width: u32, height: u32) -> TinicResult<()> {
         let ctx = self
             .window_ctx
             .as_mut()

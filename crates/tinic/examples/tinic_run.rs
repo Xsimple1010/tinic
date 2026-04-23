@@ -1,9 +1,8 @@
 use crate::common::setup::{TINIC_EXAMPLE_DIR, create_game_instance, create_tinic};
-use tinic_generics::test_workdir::remove_test_work_dir_path;
-use tinic::ErrorHandle;
+use tinic_generics::{error_handle::TinicResult, test_workdir::remove_test_work_dir_path};
 mod common;
 
-fn main() -> Result<(), ErrorHandle> {
+fn main() -> TinicResult<()> {
     let mut tinic = create_tinic()?;
     let game_instance = create_game_instance(&mut tinic)?;
 

@@ -5,7 +5,7 @@ use crate::state_thread::EventThread;
 use libretro_sys::binding_libretro::retro_rumble_effect;
 use retro_core::RetroControllerEnvCallbacks;
 use std::sync::Arc;
-use tinic_generics::error_handle::ErrorHandle;
+use tinic_generics::error_handle::{ErrorHandle, TinicResult};
 use winit::keyboard::PhysicalKey;
 
 pub struct RetroController {
@@ -37,7 +37,7 @@ impl RetroController {
         Ok(self.manager.get_gamepads())
     }
 
-    pub fn set_max_port(&self, max: usize) -> Result<(), ErrorHandle> {
+    pub fn set_max_port(&self, max: usize) -> TinicResult<()> {
         self.manager.set_max_port(max);
         Ok(())
     }
@@ -52,7 +52,7 @@ impl RetroController {
         self.event_thread.resume(self.manager.clone())
     }
 
-    pub fn apply_rumble(&self, rubble: DeviceRubble) -> Result<(), ErrorHandle> {
+    pub fn apply_rumble(&self, rubble: DeviceRubble) -> TinicResult<()> {
         self.manager.apply_rumble(rubble);
         Ok(())
     }
@@ -84,7 +84,7 @@ pub struct RetroControllerCb {
 }
 
 impl RetroControllerEnvCallbacks for RetroControllerCb {
-    fn input_poll_callback(&self) -> Result<(), ErrorHandle> {
+    fn input_poll_callback(&self) -> TinicResult<()> {
         self.manager.update_state()?;
         Ok(())
     }

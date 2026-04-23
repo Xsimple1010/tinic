@@ -9,9 +9,9 @@ use crate::device_listener::DeviceEventHandle;
 use crate::game_loop::game_loop;
 use crate::io::stdin_reader::StdinReader;
 use crate::{app_state::AppState, window_event_listener::WindowEvents};
-use tinic::{ErrorHandle, Tinic};
+use tinic::{Tinic, TinicResult};
 
-fn main() -> Result<(), ErrorHandle> {
+fn main() -> TinicResult<()> {
     // tinic config
     let mut tinic = Tinic::new()?;
 

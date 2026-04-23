@@ -18,5 +18,5 @@ pub use retro_controllers::{
 };
 pub use retro_core::args_manager;
 pub use tinic::*;
-pub use tinic_generics::error_handle::ErrorHandle;
+pub use tinic_generics::error_handle::{ErrorHandle, TinicResult};
 pub use tinic_generics::retro_paths::RetroPaths;

@@ -1,9 +1,9 @@
-use tinic_generics::error_handle::ErrorHandle;
-use tinic_generics::types::{ArcTMutex, TMutex};
 use retro_core::av_info::AvInfo;
 use std::sync::Arc;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
+use tinic_generics::error_handle::TinicResult;
+use tinic_generics::types::{ArcTMutex, TMutex};
 
 pub struct RetroSync {
     last_frame_time: Instant,
@@ -37,7 +37,7 @@ impl RetroSync {
         }
     }
 
-    pub fn prepare_sync(&mut self, av: &Arc<AvInfo>) -> Result<(), ErrorHandle> {
+    pub fn prepare_sync(&mut self, av: &Arc<AvInfo>) -> TinicResult<()> {
         let fps = *av.timing.fps.read()?;
         let target_frame_duration = Duration::from_secs_f64(1.0 / fps);
         let now = Instant::now();
@@ -61,7 +61,7 @@ impl RetroSync {
         Ok(())
     }
 
-    pub fn sync_now(&mut self) -> Result<(), ErrorHandle> {
+    pub fn sync_now(&mut self) -> TinicResult<()> {
         let sync_data = self.sync_data.try_load()?;
 
         let sleep_time = if sync_data.adjustment < 0.0 {

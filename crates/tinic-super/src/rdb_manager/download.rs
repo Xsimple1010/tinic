@@ -3,14 +3,18 @@ use crate::{
     rdb_manager::helper::RdbEventType,
     tools::{download::download_file, extract_files::extract_zip_file},
 };
-use tinic_generics::{constants::RDB_URL, error_handle::ErrorHandle, retro_paths::RetroPaths};
 use std::sync::Arc;
+use tinic_generics::{
+    constants::RDB_URL,
+    error_handle::{ErrorHandle, TinicResult},
+    retro_paths::RetroPaths,
+};
 
 pub async fn download_rdb(
     paths: RetroPaths,
     force_update: bool,
     event_listener: Arc<dyn TinicSuperEventListener>,
-) -> Result<(), ErrorHandle> {
+) -> TinicResult<()> {
     tokio::task::spawn(async move {
         let d = download_file(
             RDB_URL,

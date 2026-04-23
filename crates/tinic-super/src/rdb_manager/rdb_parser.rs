@@ -9,12 +9,12 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use tinic_generics::constants::RDB_HEADER_SIZE;
-use tinic_generics::error_handle::ErrorHandle;
+use tinic_generics::error_handle::{ErrorHandle, TinicResult};
 
 pub fn read_rdbs_from_dir(
     rdb_dir: &PathBuf,
     event: Arc<dyn TinicSuperEventListener>,
-) -> Result<(), ErrorHandle> {
+) -> TinicResult<()> {
     let read_dir = std::fs::read_dir(&rdb_dir)?;
     let total = read_dir.count();
     let remaining = Arc::new(AtomicUsize::new(total));
@@ -44,7 +44,7 @@ pub fn read_rdb_blocking(
     event: Arc<dyn TinicSuperEventListener>,
     total: usize,
     remaining: Arc<AtomicUsize>,
-) -> Result<(), ErrorHandle> {
+) -> TinicResult<()> {
     let rdb_name = get_file_name_from_path(rdb_path)?;
 
     event.on_rdb_event(RdbEventType::ReadProgress {

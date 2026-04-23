@@ -1,6 +1,6 @@
 use sqlite::Connection;
 use std::{path::PathBuf, sync::Arc};
-use tinic_generics::error_handle::ErrorHandle;
+use tinic_generics::error_handle::{ErrorHandle, TinicResult};
 use tokio::sync::{Mutex, MutexGuard};
 
 #[derive(Clone)]
@@ -25,12 +25,12 @@ impl TinicDbConnection {
         })
     }
 
-    pub async fn try_execute<T: AsRef<str>>(&self, statement: T) -> Result<(), ErrorHandle> {
+    pub async fn try_execute<T: AsRef<str>>(&self, statement: T) -> TinicResult<()> {
         self.conn.lock().await.execute(statement)?;
         Ok(())
     }
 
-    pub async fn execute<T: AsRef<str>>(&self, statement: T) -> Result<(), ErrorHandle> {
+    pub async fn execute<T: AsRef<str>>(&self, statement: T) -> TinicResult<()> {
         Ok(self.conn.lock().await.execute(statement)?)
     }
 

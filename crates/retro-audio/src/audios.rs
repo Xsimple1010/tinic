@@ -1,8 +1,8 @@
 use crate::audio_driver::AudioDriver;
-use tinic_generics::error_handle::ErrorHandle;
-use retro_core::{av_info::AvInfo, RetroAudioEnvCallbacks};
-use ringbuf::{storage::Heap, CachingCons, CachingProd, SharedRb};
+use retro_core::{RetroAudioEnvCallbacks, av_info::AvInfo};
+use ringbuf::{CachingCons, CachingProd, SharedRb, storage::Heap};
 use std::{ptr::slice_from_raw_parts, sync::Arc};
+use tinic_generics::error_handle::{ErrorHandle, TinicResult};
 
 pub type BufferProd = CachingProd<Arc<SharedRb<Heap<i16>>>>;
 pub type BufferCons = CachingCons<Arc<SharedRb<Heap<i16>>>>;
@@ -24,15 +24,15 @@ impl RetroAudio {
         })
     }
 
-    pub fn init(&mut self, av_info: &Arc<AvInfo>) -> Result<(), ErrorHandle> {
+    pub fn init(&mut self, av_info: &Arc<AvInfo>) -> TinicResult<()> {
         self.drive.init(av_info)
     }
 
-    pub fn play(&self) -> Result<(), ErrorHandle> {
+    pub fn play(&self) -> TinicResult<()> {
         self.drive.play()
     }
 
-    pub fn pause(&self) -> Result<(), ErrorHandle> {
+    pub fn pause(&self) -> TinicResult<()> {
         self.drive.pause()
     }
 
@@ -57,7 +57,7 @@ impl RetroAudioEnvCallbacks for RetroAudioCb {
         left: i16,
         right: i16,
         av_info: Arc<AvInfo>,
-    ) -> Result<(), ErrorHandle> {
+    ) -> TinicResult<()> {
         let metadata = AudioMetadata {
             channels: 1,
             sample_rate: *av_info

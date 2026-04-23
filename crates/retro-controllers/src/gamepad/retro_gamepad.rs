@@ -3,9 +3,10 @@ use super::update_gamepad_state_handle::{
 };
 use crate::devices_manager::{DeviceKeyMap, DeviceStateListener, DevicesRequiredFunctions};
 use crate::gamepad::retro_gamepad_key_map::GamePadKeyMap;
-use tinic_generics::{error_handle::ErrorHandle, types::ArcTMutex};
 use gilrs::{Event, GamepadId, Gilrs};
 use std::sync::{Arc, atomic::AtomicUsize};
+use tinic_generics::error_handle::TinicResult;
+use tinic_generics::types::ArcTMutex;
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -55,7 +56,7 @@ impl RetroGamePad {
         connected_gamepads: &ArcTMutex<Vec<RetroGamePad>>,
         max_ports: &Arc<AtomicUsize>,
         listener: &DeviceStateListener,
-    ) -> Result<(), ErrorHandle> {
+    ) -> TinicResult<()> {
         while let Some(Event { id, event, .. }) = gilrs.next_event() {
             match event {
                 gilrs::EventType::Connected => {

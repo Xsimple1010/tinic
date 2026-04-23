@@ -1,5 +1,5 @@
 use crate::app::GameInstance;
-use tinic_generics::error_handle::ErrorHandle;
+use tinic_generics::error_handle::TinicResult;
 use winit::event::WindowEvent;
 use winit::event_loop::ActiveEventLoop;
 use winit::keyboard::{KeyCode, PhysicalKey};
@@ -10,7 +10,7 @@ impl GameInstance {
         event_loop: &ActiveEventLoop,
         event: WindowEvent,
     ) {
-        let result: Result<(), ErrorHandle> = match event {
+        let result: TinicResult<()> = match event {
             WindowEvent::CloseRequested => {
                 let _ = self.ctx.destroy_retro_ctx();
                 event_loop.exit();

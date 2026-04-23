@@ -3,14 +3,14 @@ use std::sync::atomic::Ordering;
 use crate::common::setup::get_core_test;
 use libretro_sys::binding_libretro::{retro_hw_context_type, retro_pixel_format};
 use tinic_generics::{
-    error_handle::ErrorHandle,
+    error_handle::TinicResult,
     test_workdir::{get_test_rom_path, remove_test_work_dir_path},
 };
 
 mod common;
 
 #[test]
-fn test_core_initial_state_and_after_load() -> Result<(), ErrorHandle> {
+fn test_core_initial_state_and_after_load() -> TinicResult<()> {
     let dir = "retro_core.test_core_initial_state_and_after_load";
     let core = get_core_test(dir)?;
 

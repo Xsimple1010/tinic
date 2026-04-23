@@ -5,7 +5,7 @@ use retro_core::{
 };
 use std::{ptr, sync::Arc};
 use tinic_generics::{
-    error_handle::ErrorHandle,
+    error_handle::{ErrorHandle, TinicResult},
     retro_paths::RetroPaths,
     test_workdir::{create_test_work_dir_path, get_test_core_path},
 };
@@ -28,7 +28,7 @@ impl RetroVideoEnvCallbacks for Video {
         _height: u32,
         _pitch: usize,
         _is_hw: bool,
-    ) -> Result<(), ErrorHandle> {
+    ) -> TinicResult<()> {
         println!("video_refresh_callback -> width:{_width} height:{_height} pitch:{_pitch}");
         Ok(())
     }
@@ -47,7 +47,7 @@ impl RetroAudioEnvCallbacks for Audio {
         _left: i16,
         _right: i16,
         _retro_av: Arc<AvInfo>,
-    ) -> Result<(), ErrorHandle> {
+    ) -> TinicResult<()> {
         Ok(())
     }
 
@@ -65,7 +65,7 @@ impl RetroAudioEnvCallbacks for Audio {
 struct Controller;
 
 impl RetroControllerEnvCallbacks for Controller {
-    fn input_poll_callback(&self) -> Result<(), ErrorHandle> {
+    fn input_poll_callback(&self) -> TinicResult<()> {
         Ok(())
     }
 

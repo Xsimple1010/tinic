@@ -1,12 +1,12 @@
 use std::{fmt::Display, path::PathBuf};
 
-use crate::error_handle::ErrorHandle;
+use crate::error_handle::TinicResult;
 
 pub fn create_test_work_dir_path(test_dir: impl Display) -> PathBuf {
     workspace_root().join(format!("test_workspace/{test_dir}"))
 }
 
-pub fn remove_test_work_dir_path(test_dir: impl Display) -> Result<(), ErrorHandle> {
+pub fn remove_test_work_dir_path(test_dir: impl Display) -> TinicResult<()> {
     std::fs::remove_dir_all(workspace_root().join(format!("test_workspace/{test_dir}")))?;
     Ok(())
 }
